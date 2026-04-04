@@ -59,6 +59,11 @@ jobs:
       url: https://pypi.org/p/texthumanize
 
     steps:
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
       - name: Download artifact
         uses: actions/download-artifact@v4
         with:
@@ -73,5 +78,6 @@ jobs:
           TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
         run: |
-          pip install twine
-          twine upload --skip-existing dist/*
+          python -m pip install --upgrade pip
+          python -m pip install "twine>=6.2.0" "pkginfo>=1.12.1.2"
+          python -m twine upload --skip-existing dist/*
