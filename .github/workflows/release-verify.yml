@@ -46,7 +46,7 @@ jobs:
       - name: JS tests
         working-directory: js
         run: |
-          npm ci
+          npm ci --workspaces=false
           npm test
 
       - name: Set up PHP

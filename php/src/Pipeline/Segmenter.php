@@ -46,19 +46,17 @@ class SegmentedText
             $processedText = str_replace($seg->placeholder, $seg->original, $processedText);
         }
 
-        // Pass 2: case-insensitive recovery if placeholders were case-mutated.
-        if (str_contains($processedText, "\x00THZ_")) {
-            foreach ($segments as $seg) {
-                $pattern = '/' . preg_quote($seg->placeholder, '/') . '/iu';
-                $processedText = preg_replace($pattern, $seg->original, $processedText) ?? $processedText;
-            }
+        // Pass 2: tolerant recovery if placeholders were case-mutated or
+        // null-byte wrappers were dropped by downstream string operations.
+        foreach ($segments as $seg) {
+            $bare = trim($seg->placeholder, "\x00");
+            $pattern = '/(?:\x00)?' . preg_quote($bare, '/') . '(?:\x00)?/iu';
+            $processedText = preg_replace($pattern, $seg->original, $processedText) ?? $processedText;
         }
 
         // Pass 3: strip orphaned placeholders/null bytes.
-        if (str_contains($processedText, "\x00")) {
-            $processedText = preg_replace('/\x00THZ_[A-Z_]+_\d+\x00/iu', '', $processedText) ?? $processedText;
-            $processedText = str_replace("\x00", '', $processedText);
-        }
+        $processedText = preg_replace('/(?:\x00)?THZ_[A-Z_]+_\d+(?:\x00)?/iu', '', $processedText) ?? $processedText;
+        $processedText = str_replace("\x00", '', $processedText);
 
         return $processedText;
     }
