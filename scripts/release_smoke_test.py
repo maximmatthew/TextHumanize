@@ -7,7 +7,10 @@ import re
 import sys
 from pathlib import Path
 
-import tomllib
+try:
+    import tomllib
+except ModuleNotFoundError:  # pragma: no cover - Python < 3.11 fallback
+    tomllib = None
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -16,9 +19,16 @@ if str(ROOT) not in sys.path:
 
 def _expected_version() -> str:
     pyproject = ROOT / "pyproject.toml"
-    with pyproject.open("rb") as fh:
-        data = tomllib.load(fh)
-    return data["project"]["version"]
+    if tomllib is not None:
+        with pyproject.open("rb") as fh:
+            data = tomllib.load(fh)
+        return data["project"]["version"]
+
+    text = pyproject.read_text(encoding="utf-8")
+    match = re.search(r'(?m)^\s*version\s*=\s*"([^"]+)"\s*$', text)
+    if not match:
+        raise RuntimeError("Unable to parse version from pyproject.toml")
+    return match.group(1)
 
 
 def _check_html_handling(humanize_fn) -> None:
