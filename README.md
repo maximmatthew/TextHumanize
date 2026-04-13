@@ -1717,6 +1717,8 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, testing, and PR gu
 
 **Areas for contribution:** New language packs · Improved synonym dictionaries · Better grammar rules · Performance optimizations · Additional integrations
 
+See [CONTRIBUTORS.md](CONTRIBUTORS.md) for the full list of contributors.
+
 ```bash
 git clone https://github.com/ksanyok/TextHumanize.git
 cd TextHumanize
