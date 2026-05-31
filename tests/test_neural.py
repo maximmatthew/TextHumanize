@@ -6,6 +6,7 @@ Run: pytest tests/test_neural.py -v
 from __future__ import annotations
 
 import math
+import warnings
 
 import pytest
 
@@ -59,6 +60,27 @@ class TestNeuralEngine:
         out = layer.forward([3.0, 4.0])
         assert out[0] == pytest.approx(0.0, abs=1e-6)  # 3 - 5 = -2 → relu → 0
         assert out[1] == pytest.approx(4.0, abs=1e-6)
+
+    def test_numpy_forward_handles_non_finite_inputs_without_warnings(self) -> None:
+        from texthumanize.neural_engine import _HAS_NUMPY, DenseLayer
+
+        if not _HAS_NUMPY:
+            pytest.skip("numpy acceleration unavailable")
+
+        layer = DenseLayer(
+            weights=[[float("inf"), 1e39], [float("nan"), -1e39]],
+            bias=[float("inf"), float("nan")],
+            activation="linear",
+        )
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always", RuntimeWarning)
+            out = layer.forward([float("inf"), float("nan")])
+
+        assert all(math.isfinite(value) for value in out)
+        assert not [
+            item for item in caught
+            if issubclass(item.category, RuntimeWarning)
+        ]
 
     def test_feedforward_net(self) -> None:
         from texthumanize.neural_engine import DenseLayer, FeedForwardNet
@@ -351,6 +373,23 @@ class TestNeuralLM:
         text = "Привет, мир! Это тестовый текст на русском языке."
         ppl = nlm.perplexity(text)
         assert ppl > 0
+
+    def test_perplexity_has_no_runtime_warnings(self) -> None:
+        from texthumanize.neural_lm import NeuralPerplexity
+
+        nlm = NeuralPerplexity()
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always", RuntimeWarning)
+            ppl = nlm.perplexity(
+                "Furthermore, this comprehensive system provides robust analysis.",
+                max_chars=120,
+            )
+
+        assert ppl > 0
+        assert not [
+            item for item in caught
+            if issubclass(item.category, RuntimeWarning)
+        ]
 
     def test_singleton(self) -> None:
         from texthumanize.neural_lm import get_neural_lm

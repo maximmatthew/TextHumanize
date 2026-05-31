@@ -34,6 +34,7 @@ from texthumanize.neural_engine import (
     Vec,
     _he_init,
     _log_softmax,
+    _np_linear,
     _zeros,
 )
 
@@ -100,10 +101,7 @@ class _OutputProjection:
     def __call__(self, h: Vec) -> Vec:
         """Compute logits = W @ h + b (optimized)."""
         if _HAS_NP:
-            w = _np.asarray(self.W, dtype=_np.float32)
-            b = _np.asarray(self.b, dtype=_np.float32)
-            hv = _np.asarray(h, dtype=_np.float32)
-            return (w @ hv + b).tolist()
+            return _np_linear(self.W, h, self.b).tolist()
         _m = _mul
         W, b = self.W, self.b
         return [sum(map(_m, W[i], h)) + b[i] for i in range(len(b))]

@@ -47,6 +47,31 @@ Mat = list[list[float]]
 
 # Use operator.mul + sum(map(...)) for 5-15x faster dot product vs Python loop.
 _mul = operator.mul
+_NP_FINITE_LIMIT = 1_000_000.0
+_NP_CELL_LIMIT = 50.0
+
+
+def _np_finite_array(values: Any, *, limit: float = _NP_FINITE_LIMIT) -> Any:
+    """Convert values to finite float32 numpy array for stable inference."""
+    with np.errstate(divide="ignore", over="ignore", invalid="ignore", under="ignore"):
+        arr = np.asarray(values, dtype=np.float32)
+    return np.nan_to_num(arr, nan=0.0, posinf=limit, neginf=-limit)
+
+
+def _np_linear(
+    weights: Any,
+    vector: Any,
+    bias: Any,
+    *,
+    limit: float = _NP_FINITE_LIMIT,
+) -> Any:
+    """Stable matrix-vector product used by numpy inference paths."""
+    w = _np_finite_array(weights, limit=limit)
+    x = _np_finite_array(vector, limit=limit)
+    b = _np_finite_array(bias, limit=limit)
+    with np.errstate(divide="ignore", over="ignore", invalid="ignore", under="ignore"):
+        out = w @ x + b
+    return np.nan_to_num(out, nan=0.0, posinf=limit, neginf=-limit)
 
 
 def _dot(a: Vec, b: Vec) -> float:
@@ -213,24 +238,33 @@ class DenseLayer:
 
     def _forward_np(self, x: Vec) -> Vec:
         """numpy-accelerated forward pass."""
-        w = np.asarray(self.weights, dtype=np.float32)
-        b = np.asarray(self.bias, dtype=np.float32)
-        xn = np.asarray(x, dtype=np.float32)
-        out = w @ xn + b
+        out = _np_linear(self.weights, x, self.bias)
         if self.use_layer_norm:
             mean = out.mean()
             std = np.sqrt(out.var() + 1e-5)
             out = (out - mean) / std
         act = self.activation
-        if act == "relu":
-            out = np.maximum(out, 0.0)
-        elif act == "sigmoid":
-            out = 1.0 / (1.0 + np.exp(-np.clip(out, -88, 88)))
-        elif act == "tanh":
-            out = np.tanh(out)
-        elif act == "gelu":
-            out = 0.5 * out * (1.0 + np.tanh(np.sqrt(2.0 / np.pi) * (out + 0.044715 * out ** 3)))
-        return out.tolist()
+        with np.errstate(divide="ignore", over="ignore", invalid="ignore", under="ignore"):
+            if act == "relu":
+                out = np.maximum(out, 0.0)
+            elif act == "sigmoid":
+                out = 1.0 / (1.0 + np.exp(-np.clip(out, -88, 88)))
+            elif act == "tanh":
+                out = np.tanh(np.clip(out, -88, 88))
+            elif act == "gelu":
+                clipped = np.clip(out, -_NP_FINITE_LIMIT, _NP_FINITE_LIMIT)
+                out = 0.5 * clipped * (
+                    1.0 + np.tanh(
+                        np.sqrt(2.0 / np.pi)
+                        * (clipped + 0.044715 * clipped ** 3)
+                    )
+                )
+        return np.nan_to_num(
+            out,
+            nan=0.0,
+            posinf=_NP_FINITE_LIMIT,
+            neginf=-_NP_FINITE_LIMIT,
+        ).tolist()
 
     @property
     def in_features(self) -> int:
@@ -383,27 +417,47 @@ class LSTMCell:
     ) -> tuple[Vec, Vec]:
         """numpy-accelerated LSTM step."""
         combined = np.concatenate([
-            np.asarray(h_prev, dtype=np.float32),
-            np.asarray(x, dtype=np.float32),
+            _np_finite_array(h_prev),
+            _np_finite_array(x),
         ])
-        c_prev_np = np.asarray(c_prev, dtype=np.float32)
+        c_prev_np = np.clip(
+            _np_finite_array(c_prev, limit=_NP_CELL_LIMIT),
+            -_NP_CELL_LIMIT,
+            _NP_CELL_LIMIT,
+        )
 
-        wf = np.asarray(self.wf, dtype=np.float32)
-        wi = np.asarray(self.wi, dtype=np.float32)
-        wg = np.asarray(self.wg, dtype=np.float32)
-        wo = np.asarray(self.wo, dtype=np.float32)
-        bf = np.asarray(self.bf, dtype=np.float32)
-        bi = np.asarray(self.bi, dtype=np.float32)
-        bg = np.asarray(self.bg, dtype=np.float32)
-        bo = np.asarray(self.bo, dtype=np.float32)
+        with np.errstate(divide="ignore", over="ignore", invalid="ignore", under="ignore"):
+            f_gate = 1.0 / (
+                1.0 + np.exp(-np.clip(_np_linear(self.wf, combined, self.bf, limit=88.0), -88, 88))
+            )
+            i_gate = 1.0 / (
+                1.0 + np.exp(-np.clip(_np_linear(self.wi, combined, self.bi, limit=88.0), -88, 88))
+            )
+            g_gate = np.tanh(
+                np.clip(_np_linear(self.wg, combined, self.bg, limit=88.0), -88, 88)
+            )
+            o_gate = 1.0 / (
+                1.0 + np.exp(-np.clip(_np_linear(self.wo, combined, self.bo, limit=88.0), -88, 88))
+            )
 
-        f_gate = 1.0 / (1.0 + np.exp(-np.clip(wf @ combined + bf, -88, 88)))
-        i_gate = 1.0 / (1.0 + np.exp(-np.clip(wi @ combined + bi, -88, 88)))
-        g_gate = np.tanh(wg @ combined + bg)
-        o_gate = 1.0 / (1.0 + np.exp(-np.clip(wo @ combined + bo, -88, 88)))
-
-        c_new = f_gate * c_prev_np + i_gate * g_gate
-        h_new = o_gate * np.tanh(c_new)
+            c_new = f_gate * c_prev_np + i_gate * g_gate
+            c_new = np.clip(
+                np.nan_to_num(
+                    c_new,
+                    nan=0.0,
+                    posinf=_NP_CELL_LIMIT,
+                    neginf=-_NP_CELL_LIMIT,
+                ),
+                -_NP_CELL_LIMIT,
+                _NP_CELL_LIMIT,
+            )
+            h_new = o_gate * np.tanh(c_new)
+            h_new = np.nan_to_num(
+                h_new,
+                nan=0.0,
+                posinf=1.0,
+                neginf=-1.0,
+            )
 
         return h_new.tolist(), c_new.tolist()
 
