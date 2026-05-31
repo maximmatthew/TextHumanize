@@ -11,7 +11,7 @@ import { getLangPack, hasDeepSupport, supportedLanguages } from '../src/lang';
 
 describe('Version', () => {
   it('should export version string', () => {
-    expect(VERSION).toBe('0.28.2');
+    expect(VERSION).toBe('0.28.3');
   });
 });
 

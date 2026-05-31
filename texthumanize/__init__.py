@@ -40,7 +40,7 @@ import sys as _sys
 import types as _types
 from typing import Any
 
-__version__ = "0.28.2"
+__version__ = "0.28.3"
 try:
     from importlib.metadata import version as _meta_version
     _dist_version = _meta_version("texthumanize")

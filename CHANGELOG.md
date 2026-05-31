@@ -3,6 +3,16 @@
 All notable changes to this project are documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.28.3] - 2026-05-31
+
+### Added
+- **GitHub community health files** — added Code of Conduct, Security Policy, structured bug/feature/quality issue templates, and a pull request template to complete the repository community checklist.
+- **Release checklist documentation** — added a practical release checklist for PyPI and Packagist publication safety.
+
+### Changed
+- **Version sync across ecosystems** — aligned release version to **0.28.3** in Python, PHP, TypeScript/JavaScript, package locks, and version tests.
+- **Release verification hardening** — `scripts/check_version_sync.py` now verifies README and CHANGELOG release references in addition to package manifests.
+
 ## [0.28.2] - 2026-04-05
 
 ### Fixed

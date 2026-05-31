@@ -18,6 +18,11 @@ def _extract(pattern: str, text: str, file: str) -> str:
     return m.group(1)
 
 
+def _require_contains(file: str, text: str, needle: str) -> None:
+    if needle not in text:
+        raise RuntimeError(f"{file} does not contain expected release reference: {needle}")
+
+
 def main() -> int:
     pyproject = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
     expected = _extract(r'^version\s*=\s*"([^"]+)"', pyproject, "pyproject.toml")
@@ -60,6 +65,25 @@ def main() -> int:
         print(f"Version mismatch: expected {expected}")
         for file, version in mismatches:
             print(f" - {file}: {version}")
+        return 1
+
+    changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+    changelog_latest = _extract(
+        r"^## \[([^\]]+)\]",
+        changelog,
+        "CHANGELOG.md",
+    )
+    if changelog_latest != expected:
+        print(f"CHANGELOG.md latest entry mismatch: expected {expected}, got {changelog_latest}")
+        return 1
+
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    try:
+        _require_contains("README.md", readme, f"What's New in v{expected}")
+        _require_contains("README.md", readme, f"pip install texthumanize=={expected}")
+        _require_contains("README.md", readme, f"TextHumanize v{expected}")
+    except RuntimeError as exc:
+        print(str(exc))
         return 1
 
     print(f"Version sync OK: {expected}")

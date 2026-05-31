@@ -71,7 +71,7 @@
 - [Security & Limits](#-security--limits)
 - [For Business & Enterprise](#-for-business--enterprise)
 - [FAQ & Troubleshooting](#-faq--troubleshooting)
-- [What's New in v0.28.2](#-whats-new-in-v0282)
+- [What's New in v0.28.3](#-whats-new-in-v0283)
 - [Contributing](#-contributing)
 - [Limitations](#-limitations)
 - [Support the Project](#-support-the-project)
@@ -187,7 +187,7 @@ git clone https://github.com/ksanyok/TextHumanize.git
 cd TextHumanize && pip install -e .
 ```
 
-> **Tip:** Pin your version for production: `pip install texthumanize==0.28.2`
+> **Tip:** Pin your version for production: `pip install texthumanize==0.28.3`
 
 <details>
 <summary><b>PHP / TypeScript</b></summary>
@@ -1334,7 +1334,7 @@ All benchmarks on Apple Silicon (M-series), Python 3.12, single thread, after wa
 
 ```
 ┌──────────────────────────────────────────────────────────┐
-│  TextHumanize v0.28.2 — AI Score Benchmark              │
+│  TextHumanize v0.28.3 — AI Score Benchmark              │
 ├──────────────────────────────────────────────────────────┤
 │  EN (web/50):    94% → 27%    (reduction: -67pp)        │
 │  EN (web/60):    94% → 23%    (reduction: -71pp)        │
@@ -1680,9 +1680,14 @@ Try the [Live Demo](https://texthumanize.link/). For local use, the REST API + S
 
 ---
 
-## 🆕 What's New in v0.28.2
+## 🆕 What's New in v0.28.3
 
-### Patch fixes (0.28.2)
+### Release readiness (0.28.3)
+- **GitHub community checklist completed** — added Code of Conduct, Security Policy, issue templates, quality-report template, and pull request template.
+- **Release metadata sync** — Python, PHP, and TypeScript package versions are aligned for PyPI, Packagist, and source installs.
+- **Safer release verification** — version checks now validate package manifests plus README/CHANGELOG release references before publication.
+
+### Previous patch fixes (0.28.2)
 - **PHP HTML wrapper compatibility** — internal orphan cleanup no longer strips external wrapper tokens like `THZ_APP_HTML_*`, preventing broken restore in client wrappers.
 - **HTML + keep_keywords flows now humanize properly** — `THZ_KEYWORD_*` / `THZ_BRAND_*` placeholders are treated as inline-safe, so structure/naturalization stages are not skipped.
 - **Connector replacement after protected tags** — connector rewrites now work even when a line starts with inline placeholders.

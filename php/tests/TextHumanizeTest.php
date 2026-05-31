@@ -446,7 +446,7 @@ class TextHumanizeTest extends TestCase
 
     public function testVersion(): void
     {
-        $this->assertSame('0.28.2', TextHumanize::VERSION);
+        $this->assertSame('0.28.3', TextHumanize::VERSION);
     }
 
     // ==================== Integration ====================

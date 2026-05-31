@@ -15,6 +15,19 @@ from texthumanize import analyze, detect_ai, humanize
 from texthumanize.core import paraphrase
 from texthumanize.utils import HumanizeResult
 
+# Hypothesis 6.141+ can spend a long time mining constants from every local
+# imported module. TextHumanize loads many data-heavy modules, while these tests
+# already use explicit strategies, so local constant mining adds no useful
+# coverage and can trip pytest-timeout in release CI.
+try:
+    from hypothesis.internal.conjecture import providers as _hypothesis_providers
+
+    _hypothesis_providers._get_local_constants = (
+        lambda: _hypothesis_providers._local_constants
+    )
+except Exception:  # pragma: no cover - defensive for Hypothesis internals
+    pass
+
 # Common settings: no deadline, suppress filter health check, deterministic for CI
 _common = dict(
     deadline=None,
