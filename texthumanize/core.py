@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
+import difflib
+import hashlib
 import logging
+import math
 import re
 import threading
+import unicodedata
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import TYPE_CHECKING, Any, cast
@@ -1138,6 +1142,636 @@ def _split_into_chunks(text: str, chunk_size: int, overlap: int = 0) -> list[str
     return chunks if chunks else [text]
 
 
+_FORMAL_FALSE_POSITIVE_DOMAINS = {
+    "academic",
+    "docs",
+    "documentation",
+    "finance",
+    "financial",
+    "legal",
+    "medical",
+}
+
+_AI_METRIC_GUIDANCE: dict[str, tuple[str, str]] = {
+    "entropy": (
+        "Token distribution is too even or too compressed.",
+        "Add concrete details and keep natural word-choice variety.",
+    ),
+    "burstiness": (
+        "Sentence rhythm is unusually uniform.",
+        "Mix short and longer sentences where it helps the reader.",
+    ),
+    "vocabulary": (
+        "Vocabulary variety differs from expected human baselines.",
+        "Use more domain-specific wording and fewer generic terms.",
+    ),
+    "zipf": (
+        "Word-frequency distribution looks less natural than expected.",
+        "Prefer common direct wording unless a precise term is needed.",
+    ),
+    "stylometry": (
+        "Style markers are internally too consistent.",
+        "Vary openings, clause shapes, and punctuation naturally.",
+    ),
+    "ai_patterns": (
+        "Known AI-like phrases or connectors were detected.",
+        "Rewrite formulaic transitions and replace generic claims with specifics.",
+    ),
+    "punctuation": (
+        "Punctuation pattern is unusually regular.",
+        "Let punctuation follow the sentence, not a repeated template.",
+    ),
+    "coherence": (
+        "Paragraph flow is too template-like or too smooth.",
+        "Add concrete transitions that reflect the actual argument.",
+    ),
+    "grammar_perfection": (
+        "The text is very polished with few natural irregularities.",
+        "Keep correctness, but remove sterile phrasing and over-formal turns.",
+    ),
+    "opening_diversity": (
+        "Many sentences start in similar ways.",
+        "Vary sentence openings and move context after the main claim.",
+    ),
+    "readability_consistency": (
+        "Readability is too consistent across the text.",
+        "Allow natural shifts between simple explanation and denser details.",
+    ),
+    "rhythm": (
+        "Cadence is repetitive.",
+        "Break repeated sentence lengths and connector patterns.",
+    ),
+    "perplexity": (
+        "Language-model perplexity is outside the expected range.",
+        "Use natural collocations and avoid generic boilerplate.",
+    ),
+    "discourse": (
+        "Discourse structure looks template-driven.",
+        "Make transitions reflect cause, contrast, or sequence explicitly.",
+    ),
+    "semantic_repetition": (
+        "Similar ideas are repeated with small wording changes.",
+        "Merge repeated claims and add new evidence or examples.",
+    ),
+    "entity_specificity": (
+        "The text lacks names, numbers, dates, or concrete references.",
+        "Add verifiable entities, examples, figures, and constraints where true.",
+    ),
+    "voice": (
+        "Author voice is weak or generic.",
+        "Use a clearer point of view and domain-specific judgment.",
+    ),
+    "topic_sentence": (
+        "Topic-sentence pattern is too predictable.",
+        "Vary paragraph starts and lead with the most useful detail.",
+    ),
+}
+
+
+def _clamp(value: float, low: float = 0.0, high: float = 1.0) -> float:
+    return max(low, min(high, value))
+
+
+def _safe_float(value: Any, default: float = 0.0) -> float:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _detector_verdict(score: float) -> str:
+    if score > 0.55:
+        return "ai"
+    if score > 0.34:
+        return "mixed"
+    return "human"
+
+
+def _severity(score: float) -> str:
+    if score >= 0.66:
+        return "high"
+    if score >= 0.40:
+        return "medium"
+    return "low"
+
+
+def _ai_length_bucket(text: str) -> dict[str, Any]:
+    chars = len(text)
+    words = len(re.findall(r"\w+", text, flags=re.UNICODE))
+
+    if chars < 300:
+        name = "lt_300"
+        reliability = "low"
+        factor = 0.72
+        margin = 0.20
+    elif chars < 1000:
+        name = "300_1000"
+        reliability = "medium"
+        factor = 0.88
+        margin = 0.14
+    elif chars < 5000:
+        name = "1000_5000"
+        reliability = "high"
+        factor = 0.97
+        margin = 0.09
+    else:
+        name = "gte_5000"
+        reliability = "very_high"
+        factor = 1.0
+        margin = 0.06
+
+    return {
+        "name": name,
+        "chars": chars,
+        "words": words,
+        "reliability": reliability,
+        "calibration_factor": factor,
+        "base_margin": margin,
+    }
+
+
+def _calibrate_detector_score(
+    score: float,
+    bucket: dict[str, Any],
+    domain: str | None,
+    metrics: dict[str, Any],
+) -> tuple[float, dict[str, Any]]:
+    factor = _safe_float(bucket.get("calibration_factor"), 1.0)
+    calibrated = 0.5 + (score - 0.5) * factor
+
+    guard_applied = 0.0
+    domain_key = (domain or "").lower()
+    if domain_key in _FORMAL_FALSE_POSITIVE_DOMAINS:
+        pattern_score = _safe_float(metrics.get("ai_patterns"))
+        if pattern_score < 0.55:
+            guard_applied = min(0.06, (0.55 - pattern_score) * 0.08)
+            calibrated -= guard_applied
+
+    return _clamp(calibrated), {
+        "method": "length_bucket_plus_formal_domain_guard",
+        "length_factor": factor,
+        "formal_domain_guard": round(guard_applied, 4),
+        "note": (
+            "Short texts and formal domains are pulled toward neutral to reduce "
+            "false positives. Raw score is preserved separately."
+        ),
+    }
+
+
+def _confidence_interval(
+    score: float,
+    confidence: float,
+    bucket: dict[str, Any],
+) -> dict[str, Any]:
+    base_margin = _safe_float(bucket.get("base_margin"), 0.14)
+    confidence = _clamp(confidence)
+    margin = min(0.25, base_margin * (1.10 - confidence * 0.35))
+    return {
+        "lower": round(_clamp(score - margin), 4),
+        "upper": round(_clamp(score + margin), 4),
+        "margin": round(margin, 4),
+        "method": "heuristic_by_text_length_and_detector_confidence",
+    }
+
+
+def _metric_contributions(metrics: dict[str, Any]) -> list[dict[str, Any]]:
+    values = {
+        name: _clamp(_safe_float(value))
+        for name, value in metrics.items()
+    }
+    total = sum(values.values()) or 1.0
+    signals: list[dict[str, Any]] = []
+    for name, value in sorted(values.items(), key=lambda item: item[1], reverse=True):
+        description, recommendation = _AI_METRIC_GUIDANCE.get(
+            name,
+            (
+                name.replace("_", " "),
+                "Review this metric with a domain-specific sample.",
+            ),
+        )
+        signals.append({
+            "metric": name,
+            "score": round(value, 4),
+            "relative_contribution": round(value / total, 4),
+            "severity": _severity(value),
+            "description": description,
+            "recommendation": recommendation,
+        })
+    return signals
+
+
+def _ai_reasons(
+    detection: dict[str, Any],
+    signals: list[dict[str, Any]],
+    *,
+    limit: int = 10,
+) -> list[dict[str, Any]]:
+    reasons: list[dict[str, Any]] = []
+
+    for signal in signals:
+        if signal["score"] < 0.35 and len(reasons) >= 3:
+            continue
+        if signal["score"] < 0.25 and reasons:
+            continue
+        reasons.append({
+            "type": "metric",
+            "metric": signal["metric"],
+            "severity": signal["severity"],
+            "score": signal["score"],
+            "message": signal["description"],
+            "suggested_action": signal["recommendation"],
+        })
+        if len(reasons) >= limit:
+            break
+
+    for explanation in detection.get("explanations") or []:
+        if len(reasons) >= limit:
+            break
+        reasons.append({
+            "type": "detector_explanation",
+            "severity": "info",
+            "message": str(explanation),
+        })
+
+    return reasons
+
+
+def _unique_actions(signals: list[dict[str, Any]], domain: str | None) -> list[str]:
+    actions: list[str] = []
+    seen: set[str] = set()
+    for signal in signals:
+        if signal["score"] < 0.30:
+            continue
+        action = str(signal["recommendation"])
+        if action not in seen:
+            seen.add(action)
+            actions.append(action)
+        if len(actions) >= 7:
+            break
+
+    domain_key = (domain or "").lower()
+    if domain_key in _FORMAL_FALSE_POSITIVE_DOMAINS:
+        action = (
+            "For formal text, keep required terminology and fix only the spans "
+            "that carry explicit AI-like markers."
+        )
+        if action not in seen:
+            actions.append(action)
+
+    if not actions:
+        actions.append("No strong AI-like signal was isolated; review only flagged spans.")
+    return actions
+
+
+def _scan_ai_marker_spans(
+    text: str,
+    lang: str,
+    *,
+    max_spans: int = 12,
+) -> list[dict[str, Any]]:
+    try:
+        markers_mod = _lazy_import("texthumanize.ai_markers")
+        markers = markers_mod.load_ai_markers(lang)
+        if not markers and lang != "en":
+            markers = markers_mod.load_ai_markers("en")
+    except Exception:
+        return []
+
+    candidates: list[tuple[str, str]] = []
+    for category, values in markers.items():
+        for marker in values:
+            marker_text = str(marker).strip()
+            if len(marker_text) >= 3:
+                candidates.append((marker_text, str(category)))
+
+    spans: list[dict[str, Any]] = []
+    seen: set[tuple[int, int, str]] = set()
+    candidates.sort(key=lambda item: (len(item[0]), item[0].lower()), reverse=True)
+
+    for marker, category in candidates:
+        if len(spans) >= max_spans:
+            break
+        escaped = re.escape(marker)
+        if marker[0].isalnum() and marker[-1].isalnum():
+            pattern = rf"(?<![\w-]){escaped}(?![\w-])"
+        else:
+            pattern = escaped
+        try:
+            matches = re.finditer(pattern, text, flags=re.IGNORECASE)
+        except re.error:
+            continue
+        for match in matches:
+            key = (match.start(), match.end(), "ai_marker")
+            if key in seen:
+                continue
+            seen.add(key)
+            spans.append({
+                "start": match.start(),
+                "end": match.end(),
+                "text": match.group(0),
+                "kind": "ai_marker",
+                "category": category,
+                "severity": "medium",
+                "reason": f"Known AI-marker {category}",
+                "suggested_action": (
+                    "Rewrite the phrase in a more specific, context-aware way."
+                ),
+            })
+            if len(spans) >= max_spans:
+                break
+
+    return sorted(spans, key=lambda span: (span["start"], span["end"]))
+
+
+def _sentence_ai_report(
+    text: str,
+    lang: str,
+    *,
+    max_highlights: int = 12,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    try:
+        sentences = detect_ai_sentences(text, lang=lang)
+    except Exception as exc:
+        return [], [{
+            "type": "sentence_report_error",
+            "severity": "info",
+            "message": f"Sentence-level detector unavailable: {exc}",
+        }]
+
+    highlights: list[dict[str, Any]] = []
+    for sentence in sentences:
+        score = _safe_float(sentence.get("ai_probability"))
+        sentence["severity"] = _severity(score)
+        if len(highlights) < max_highlights and (
+            sentence.get("label") != "human" or score >= 0.34
+        ):
+            highlights.append({
+                "start": sentence["start"],
+                "end": sentence["end"],
+                "text": sentence["text"],
+                "kind": "sentence_ai_signal",
+                "severity": _severity(score),
+                "score": round(score, 4),
+                "label": sentence.get("label", "unknown"),
+                "reason": "Sentence-level AI probability is elevated.",
+                "suggested_action": (
+                    "Edit this sentence first and preserve surrounding context."
+                ),
+            })
+
+    return highlights, sentences
+
+
+def _mixed_content_report(text: str, lang: str) -> dict[str, Any]:
+    try:
+        segments = detect_ai_mixed(text, lang=lang)
+    except Exception as exc:
+        return {
+            "segments": [],
+            "shares": {"human": 0.0, "mixed": 0.0, "ai": 0.0},
+            "error": str(exc),
+        }
+
+    total_chars = max(1, sum(len(segment.get("text", "")) for segment in segments))
+    shares = {"human": 0.0, "mixed": 0.0, "ai": 0.0}
+    for segment in segments:
+        label = str(segment.get("label", "mixed"))
+        if label not in shares:
+            label = "mixed"
+        shares[label] += len(segment.get("text", "")) / total_chars
+
+    return {
+        "segments": segments,
+        "shares": {key: round(value, 4) for key, value in shares.items()},
+    }
+
+
+def _normal_p_value_from_z(z_score: float) -> float:
+    return 0.5 * math.erfc(z_score / math.sqrt(2.0))
+
+
+def _watermark_category(kind: str) -> str:
+    if "zero_width" in kind or "unicode" in kind or "homoglyph" in kind:
+        return "unicode"
+    if "spacing" in kind:
+        return "spacing"
+    if "metadata" in kind or "provenance" in kind:
+        return "metadata"
+    if "statistical" in kind or "kirchenbauer" in kind:
+        return "statistical"
+    return "unknown"
+
+
+def _codepoint(ch: str) -> str:
+    return f"U+{ord(ch):04X}"
+
+
+def _watermark_spans(text: str, report: Any, wm_mod: Any) -> list[dict[str, Any]]:
+    zero_width_chars = set(getattr(wm_mod, "_ZERO_WIDTH_CHARS", set()))
+    spans: list[dict[str, Any]] = []
+
+    for index, ch in enumerate(text):
+        if ch in zero_width_chars:
+            spans.append({
+                "start": index,
+                "end": index + 1,
+                "text": ch,
+                "kind": "zero_width_character",
+                "category": "unicode",
+                "severity": "high",
+                "codepoint": _codepoint(ch),
+                "unicode_name": unicodedata.name(ch, "UNKNOWN"),
+                "safe_replacement": "",
+                "safe_action": "remove",
+            })
+            continue
+
+        category = unicodedata.category(ch)
+        if category == "Cf" and ch not in ("\n", "\r", "\t", " "):
+            spans.append({
+                "start": index,
+                "end": index + 1,
+                "text": ch,
+                "kind": "invisible_unicode",
+                "category": "unicode",
+                "severity": "high",
+                "codepoint": _codepoint(ch),
+                "unicode_name": unicodedata.name(ch, "UNKNOWN"),
+                "safe_replacement": "",
+                "safe_action": "remove",
+            })
+
+    cleaned_index_to_original = [
+        index for index, ch in enumerate(text) if ch not in zero_width_chars
+    ]
+    for original, expected, position in getattr(report, "homoglyphs_found", []):
+        original_index = None
+        if 0 <= position < len(cleaned_index_to_original):
+            original_index = cleaned_index_to_original[position]
+        else:
+            found_at = text.find(original)
+            if found_at >= 0:
+                original_index = found_at
+        if original_index is None:
+            continue
+        spans.append({
+            "start": original_index,
+            "end": original_index + len(original),
+            "text": original,
+            "kind": "homoglyph_substitution",
+            "category": "unicode",
+            "severity": "high",
+            "codepoint": _codepoint(original),
+            "unicode_name": unicodedata.name(original, "UNKNOWN"),
+            "safe_replacement": expected,
+            "safe_action": "replace",
+        })
+
+    return sorted(spans, key=lambda span: (span["start"], span["end"], span["kind"]))
+
+
+def _text_diff(original: str, revised: str, *, max_changes: int = 20) -> list[dict[str, Any]]:
+    changes: list[dict[str, Any]] = []
+    matcher = difflib.SequenceMatcher(a=original, b=revised, autojunk=False)
+    for tag, i1, i2, j1, j2 in matcher.get_opcodes():
+        if tag == "equal":
+            continue
+        changes.append({
+            "op": tag,
+            "original_start": i1,
+            "original_end": i2,
+            "revised_start": j1,
+            "revised_end": j2,
+            "original": original[i1:i2],
+            "replacement": revised[j1:j2],
+        })
+        if len(changes) >= max_changes:
+            break
+    return changes
+
+
+def _is_green_hypothesis(
+    tokens: list[str],
+    index: int,
+    *,
+    scheme_id: int,
+    gamma: float,
+    window: int,
+) -> bool:
+    start = max(0, index - window)
+    context = " ".join(tokens[start:index])
+    current = tokens[index]
+    seed = hashlib.sha256(
+        f"{scheme_id}:{window}:{context}".encode("utf-8", errors="ignore")
+    ).digest()
+    current_hash = hashlib.md5(
+        f"{scheme_id}:{current}".encode("utf-8", errors="ignore")
+    ).digest()
+    rotated = ((current_hash[0] / 256.0) + (seed[0] / 256.0)) % 1.0
+    return rotated < gamma
+
+
+def _statistical_watermark_hypotheses(text: str) -> dict[str, Any]:
+    tokens = re.findall(r"\b\w+\b", text.lower(), flags=re.UNICODE)
+    if len(tokens) < 10:
+        return {
+            "tested": 0,
+            "best": None,
+            "results": [],
+            "note": "Need at least 10 tokens for a statistical hypothesis scan.",
+        }
+
+    results: list[dict[str, Any]] = []
+    for gamma in (0.25, 0.50, 0.75):
+        for window in (1, 2, 3):
+            for scheme_id in range(8):
+                green_count = 0
+                total = 0
+                for index in range(window, len(tokens)):
+                    total += 1
+                    if _is_green_hypothesis(
+                        tokens,
+                        index,
+                        scheme_id=scheme_id,
+                        gamma=gamma,
+                        window=window,
+                    ):
+                        green_count += 1
+                if total < 5:
+                    continue
+                expected = gamma * total
+                std = math.sqrt(gamma * (1.0 - gamma) * total)
+                if std == 0:
+                    continue
+                z_score = (green_count - expected) / std
+                p_value = _normal_p_value_from_z(z_score)
+                results.append({
+                    "gamma": gamma,
+                    "ngram_window": window,
+                    "hash_scheme": scheme_id,
+                    "green_ratio": round(green_count / total, 4),
+                    "z_score": round(z_score, 4),
+                    "p_value": round(p_value, 6),
+                    "tokens_analyzed": total,
+                })
+
+    results.sort(key=lambda item: item["z_score"], reverse=True)
+    best = results[0] if results else None
+    if best is None:
+        confidence = 0.0
+    else:
+        confidence = 1.0 / (1.0 + math.exp(-1.5 * (best["z_score"] - 2.0)))
+    return {
+        "tested": len(results),
+        "best": best,
+        "results": results[:8],
+        "confidence": round(_clamp(confidence), 4),
+    }
+
+
+def _watermark_findings(report: Any, statistical: dict[str, Any]) -> list[dict[str, Any]]:
+    findings: list[dict[str, Any]] = []
+    details = list(getattr(report, "details", []) or [])
+    for index, kind in enumerate(getattr(report, "watermark_types", []) or []):
+        detail = details[index] if index < len(details) else kind.replace("_", " ")
+        category = _watermark_category(kind)
+        findings.append({
+            "type": kind,
+            "category": category,
+            "severity": "high" if category == "unicode" else "medium",
+            "message": detail,
+            "safe_action": "remove_or_replace" if category == "unicode" else "review",
+        })
+
+    verdict = str(statistical.get("verdict", "no_watermark"))
+    if verdict != "no_watermark":
+        findings.append({
+            "type": "statistical_watermark",
+            "category": "statistical",
+            "severity": "high" if verdict == "strong_watermark" else "medium",
+            "message": (
+                f"Statistical watermark hypothesis: {verdict}, "
+                f"z={statistical.get('z_score')}, p={statistical.get('p_value')}"
+            ),
+            "safe_action": "review_or_aggressive_neutralise",
+        })
+
+    best = (statistical.get("hypotheses") or {}).get("best")
+    if best and _safe_float(best.get("z_score")) >= 3.0:
+        findings.append({
+            "type": "statistical_hypothesis",
+            "category": "statistical",
+            "severity": "medium",
+            "message": (
+                f"Best gamma/window/hash scan: gamma={best['gamma']}, "
+                f"window={best['ngram_window']}, z={best['z_score']}"
+            ),
+            "safe_action": "review",
+        })
+
+    return findings
+
+
 # ═══════════════════════════════════════════════════════════════
 #  НОВЫЕ API ФУНКЦИИ v0.4.0
 # ═══════════════════════════════════════════════════════════════
@@ -1283,6 +1917,103 @@ def detect_ai(text: str, lang: str = "auto") -> DetectionReport:
         "explanations": result.explanations,
         "domain": result.detected_domain,
         "lang": lang,
+    }
+
+
+def detect_ai_explain(
+    text: str,
+    lang: str = "auto",
+    *,
+    include_sentences: bool = True,
+    max_highlights: int = 12,
+) -> dict:
+    """Explain AI-detection risk with calibrated score and actionable spans.
+
+    The result keeps the raw detector output but adds a Promopilot-ready layer:
+    score, verdict, confidence, highlighted_spans, reasons, suggested_actions,
+    metric contributions, length calibration and confidence interval.
+    """
+    if not isinstance(text, str):
+        raise ConfigError(f"Expected str, got {type(text).__name__}")
+    if not text or not text.strip():
+        bucket = _ai_length_bucket(text)
+        return {
+            "schema_version": "text-humanize.ai_explain.v1",
+            "score": 0.0,
+            "raw_score": 0.0,
+            "calibrated_score": 0.0,
+            "verdict": "human",
+            "raw_verdict": "human",
+            "confidence": 0.0,
+            "confidence_interval": _confidence_interval(0.0, 0.0, bucket),
+            "length_bucket": bucket,
+            "lang": lang,
+            "domain": None,
+            "metric_contributions": [],
+            "reasons": [],
+            "highlighted_spans": [],
+            "sentence_report": [],
+            "mixed_content": {"segments": [], "shares": {"human": 0.0, "mixed": 0.0, "ai": 0.0}},
+            "suggested_actions": ["Provide non-empty text for a reliable audit."],
+            "raw_detection": {},
+        }
+
+    detection = detect_ai(text, lang=lang)
+    detected_lang = str(detection.get("lang") or lang)
+    metrics = dict(detection.get("metrics") or {})
+    raw_score = _clamp(_safe_float(detection.get("score")))
+    confidence = _clamp(_safe_float(detection.get("confidence")))
+    bucket = _ai_length_bucket(text)
+    calibrated_score, calibration = _calibrate_detector_score(
+        raw_score,
+        bucket,
+        detection.get("domain"),
+        metrics,
+    )
+    signals = _metric_contributions(metrics)
+    reasons = _ai_reasons(detection, signals)
+
+    highlighted_spans = _scan_ai_marker_spans(
+        text,
+        detected_lang,
+        max_spans=max_highlights,
+    )
+    if include_sentences:
+        sentence_highlights, sentence_report = _sentence_ai_report(
+            text,
+            detected_lang,
+            max_highlights=max(0, max_highlights - len(highlighted_spans)),
+        )
+        highlighted_spans.extend(sentence_highlights)
+    else:
+        sentence_report = []
+
+    highlighted_spans = sorted(
+        highlighted_spans[:max_highlights],
+        key=lambda span: (span.get("start", 0), span.get("end", 0)),
+    )
+
+    return {
+        "schema_version": "text-humanize.ai_explain.v1",
+        "score": round(calibrated_score, 4),
+        "raw_score": round(raw_score, 4),
+        "calibrated_score": round(calibrated_score, 4),
+        "verdict": _detector_verdict(calibrated_score),
+        "raw_verdict": detection.get("verdict", "unknown"),
+        "confidence": confidence,
+        "confidence_interval": _confidence_interval(calibrated_score, confidence, bucket),
+        "length_bucket": bucket,
+        "length_calibration": calibration,
+        "lang": detected_lang,
+        "domain": detection.get("domain"),
+        "metric_contributions": signals,
+        "metrics": metrics,
+        "reasons": reasons,
+        "highlighted_spans": highlighted_spans,
+        "sentence_report": sentence_report,
+        "mixed_content": _mixed_content_report(text, detected_lang),
+        "suggested_actions": _unique_actions(signals, detection.get("domain")),
+        "raw_detection": detection,
     }
 
 
@@ -1522,6 +2253,216 @@ def clean_watermarks(text: str, lang: str = "auto") -> str:
     if lang == "auto":
         lang = detect_language(text)
     return str(_get_watermark().clean_watermarks(text, lang=lang))
+
+
+def watermark_report(
+    text: str,
+    lang: str = "auto",
+    *,
+    include_statistical: bool = True,
+    aggressive: bool = False,
+    intensity: float = 0.6,
+    seed: int | None = None,
+) -> dict:
+    """Return a unified Unicode + statistical watermark audit report.
+
+    The safe branch removes invisible Unicode, homoglyph and metadata markers.
+    The aggressive branch is optional and may apply lexical substitutions through
+    Watermark Forensics for statistical watermark neutralisation.
+    """
+    if not isinstance(text, str):
+        raise ConfigError(f"Expected str, got {type(text).__name__}")
+    max_length = 1_000_000
+    if len(text) > max_length:
+        raise InputTooLargeError(len(text), max_length)
+
+    if lang == "auto":
+        lang = detect_language(text) if text.strip() else "en"
+
+    wm_mod = _get_watermark()
+    unicode_report = wm_mod.detect_watermarks(text, lang=lang)
+    spans = _watermark_spans(text, unicode_report, wm_mod)
+    diff = _text_diff(text, unicode_report.cleaned_text)
+
+    statistical: dict[str, Any] = {
+        "enabled": include_statistical,
+        "verdict": "no_watermark",
+        "z_score": 0.0,
+        "p_value": 1.0,
+        "confidence": 0.0,
+        "green_ratio": None,
+        "tokens_analyzed": 0,
+        "hash_schemes_tested": 0,
+        "hypotheses": _statistical_watermark_hypotheses(text)
+        if include_statistical else {"tested": 0, "best": None, "results": []},
+    }
+    aggressive_result = None
+
+    if include_statistical:
+        try:
+            wf_mod = _lazy_import("texthumanize.watermark_forensics")
+            forensics = wf_mod.WatermarkForensics(lang=lang, seed=seed)
+            forensic = forensics.detect(text)
+            z_score = _safe_float(getattr(forensic, "watermark_strength", 0.0))
+            statistical.update({
+                "verdict": forensic.verdict,
+                "z_score": round(z_score, 4),
+                "p_value": round(_normal_p_value_from_z(z_score), 6),
+                "confidence": _clamp(_safe_float(getattr(forensic, "confidence", 0.0))),
+                "green_ratio": getattr(forensic, "green_ratio", None),
+                "tokens_analyzed": getattr(forensic, "tokens_analyzed", 0),
+                "hash_schemes_tested": getattr(forensic, "hash_schemes_tested", 0),
+            })
+            if aggressive:
+                neutralised = forensics.neutralise(text, intensity=intensity)
+                aggressive_result = {
+                    "text": neutralised.text,
+                    "changed": neutralised.text != text,
+                    "tokens_neutralised": neutralised.tokens_neutralised,
+                    "green_ratio_before": neutralised.green_ratio,
+                    "green_ratio_after": neutralised.green_ratio_after,
+                    "changes": neutralised.changes,
+                    "diff": _text_diff(text, neutralised.text),
+                }
+        except Exception as exc:
+            statistical["error"] = str(exc)
+
+    best_hypothesis = (statistical.get("hypotheses") or {}).get("best") or {}
+    best_hypothesis_z = _safe_float(best_hypothesis.get("z_score"))
+    hypothesis_confidence = _safe_float((statistical.get("hypotheses") or {}).get("confidence"))
+    if best_hypothesis_z < 3.0:
+        hypothesis_confidence = min(hypothesis_confidence, 0.35)
+    statistical_confidence = max(_safe_float(statistical.get("confidence")), hypothesis_confidence)
+    unicode_confidence = _safe_float(getattr(unicode_report, "confidence", 0.0))
+    kirchenbauer_z = _safe_float(getattr(unicode_report, "kirchenbauer_score", 0.0))
+    if kirchenbauer_z > 0:
+        statistical_confidence = max(statistical_confidence, min(1.0, kirchenbauer_z / 5.0))
+
+    watermark_types = set(getattr(unicode_report, "watermark_types", []) or [])
+    if str(statistical.get("verdict")) != "no_watermark":
+        watermark_types.add("statistical_watermark")
+    best = (statistical.get("hypotheses") or {}).get("best")
+    if best and _safe_float(best.get("z_score")) >= 3.0:
+        watermark_types.add("statistical_hypothesis")
+
+    risk_score = max(unicode_confidence, statistical_confidence)
+    findings = _watermark_findings(unicode_report, statistical)
+
+    suggested_actions = [
+        "Use clean_safe.text for publishing when only Unicode or metadata markers are present.",
+        "Review highlighted_spans before replacing homoglyphs in brand names or code.",
+    ]
+    if statistical_confidence >= 0.50:
+        suggested_actions.append(
+            "For statistical signals, compare clean_safe.text and neutralise_aggressive.text before accepting lexical changes."
+        )
+    if not findings:
+        suggested_actions = ["No watermark evidence was found; keep the original text."]
+
+    return {
+        "schema_version": "text-humanize.watermark_report.v1",
+        "has_watermarks": bool(watermark_types),
+        "risk_score": round(_clamp(risk_score), 4),
+        "confidence": round(_clamp(risk_score), 4),
+        "lang": lang,
+        "watermark_types": sorted(watermark_types),
+        "findings": findings,
+        "highlighted_spans": spans,
+        "unicode": {
+            "has_watermarks": bool(getattr(unicode_report, "has_watermarks", False)),
+            "watermark_types": list(getattr(unicode_report, "watermark_types", []) or []),
+            "details": list(getattr(unicode_report, "details", []) or []),
+            "characters_removed": getattr(unicode_report, "characters_removed", 0),
+            "zero_width_count": getattr(unicode_report, "zero_width_count", 0),
+            "homoglyphs_found": [
+                {
+                    "original": original,
+                    "replacement": replacement,
+                    "position": position,
+                }
+                for original, replacement, position
+                in getattr(unicode_report, "homoglyphs_found", []) or []
+            ],
+            "kirchenbauer_z_score": getattr(unicode_report, "kirchenbauer_score", 0.0),
+            "kirchenbauer_p_value": getattr(unicode_report, "kirchenbauer_p_value", 1.0),
+        },
+        "statistical": statistical,
+        "safe_cleaned_text": unicode_report.cleaned_text,
+        "clean_safe": {
+            "text": unicode_report.cleaned_text,
+            "changed": unicode_report.cleaned_text != text,
+            "diff": diff,
+        },
+        "neutralise_aggressive": aggressive_result,
+        "suggested_actions": suggested_actions,
+    }
+
+
+def watermark_report_batch(
+    texts: list[str],
+    lang: str = "auto",
+    *,
+    include_statistical: bool = True,
+    aggressive: bool = False,
+) -> list[dict]:
+    """Batch wrapper for watermark_report()."""
+    return [
+        watermark_report(
+            text,
+            lang=lang,
+            include_statistical=include_statistical,
+            aggressive=aggressive,
+        )
+        for text in texts
+    ]
+
+
+def clean_safe(text: str, lang: str = "auto") -> str:
+    """Safely remove Unicode/metadata watermarks without lexical rewriting."""
+    return clean_watermarks(text, lang=lang)
+
+
+def neutralise_aggressive(
+    text: str,
+    lang: str = "auto",
+    *,
+    intensity: float = 0.6,
+    seed: int | None = None,
+) -> str:
+    """Aggressively neutralise statistical watermark signals."""
+    result = neutralise_watermark(text, lang=lang, intensity=intensity, seed=seed)
+    return str(getattr(result, "text", text))
+
+
+def audit_report(
+    text: str,
+    lang: str = "auto",
+    *,
+    aggressive_watermark: bool = False,
+) -> dict:
+    """Combined AI and watermark audit report for product integrations."""
+    ai = detect_ai_explain(text, lang=lang)
+    resolved_lang = str(ai.get("lang") or lang)
+    watermark = watermark_report(
+        text,
+        lang=resolved_lang,
+        aggressive=aggressive_watermark,
+    )
+    actions: list[str] = []
+    for action in list(ai.get("suggested_actions", [])) + list(watermark.get("suggested_actions", [])):
+        if action not in actions:
+            actions.append(action)
+        if len(actions) >= 10:
+            break
+
+    return {
+        "schema_version": "text-humanize.audit_report.v1",
+        "lang": resolved_lang,
+        "score": round(max(_safe_float(ai.get("score")), _safe_float(watermark.get("risk_score"))), 4),
+        "ai": ai,
+        "watermark": watermark,
+        "suggested_actions": actions,
+    }
 
 
 def spin(
@@ -2388,4 +3329,3 @@ def list_ash_presets() -> dict:
     """
     mod = _lazy_import("texthumanize.ash_engine")
     return mod.list_ash_presets()
-

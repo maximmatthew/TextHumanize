@@ -13,6 +13,13 @@ echo "Text to humanize" | texthumanize - -l en
 
 # AI detection
 texthumanize input.txt --detect-ai
+texthumanize explain input.txt --json
+
+# Combined AI + watermark audit
+texthumanize audit input.txt --json
+
+# Watermark report
+texthumanize watermark input.txt --json
 
 # Text analysis
 texthumanize input.txt --analyze
@@ -41,6 +48,8 @@ texthumanize benchmark -l en --json
 | `-o`, `--output` | Output file | stdout |
 | `-s`, `--seed` | Random seed | None |
 | `--detect-ai` | AI detection mode | |
+| `--audit` | Combined AI + watermark JSON audit | |
+| `--watermark-report` | Unified watermark JSON report | |
 | `--analyze` | Analysis mode | |
 | `--paraphrase` | Paraphrasing mode | |
 | `--tone` | Tone adjustment target | |

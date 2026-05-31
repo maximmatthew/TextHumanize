@@ -115,6 +115,15 @@ class TestCLIDetectAI:
         assert "score" in data
         assert "verdict" in data
 
+    def test_explain_subcommand(self, tmp_path, capsys):
+        infile = tmp_path / "input.txt"
+        infile.write_text("Furthermore, it is important to utilize this method.")
+        run_cli('explain', str(infile), '--json', '-l', 'en')
+        out = capsys.readouterr().out
+        data = json.loads(out)
+        assert data["schema_version"] == "text-humanize.ai_explain.v1"
+        assert "highlighted_spans" in data
+
 
 class TestCLIParaphrase:
     def test_paraphrase(self, tmp_path, capsys):
@@ -156,6 +165,41 @@ class TestCLIWatermarks:
         run_cli(str(infile), '--watermarks', '-l', 'en')
         capsys.readouterr()
         # Should output cleaned text or info
+
+    def test_watermark_report_flag(self, tmp_path, capsys):
+        infile = tmp_path / "input.txt"
+        infile.write_text("Te\u200bst with watermark.")
+        run_cli(str(infile), '--watermark-report', '-l', 'en')
+        out = capsys.readouterr().out
+        data = json.loads(out)
+        assert data["schema_version"] == "text-humanize.watermark_report.v1"
+
+    def test_watermark_subcommand(self, tmp_path, capsys):
+        infile = tmp_path / "input.txt"
+        infile.write_text("Te\u200bst with watermark.")
+        run_cli('watermark', str(infile), '--json', '-l', 'en')
+        out = capsys.readouterr().out
+        data = json.loads(out)
+        assert "highlighted_spans" in data
+
+
+class TestCLIAudit:
+    def test_audit_flag(self, tmp_path, capsys):
+        infile = tmp_path / "input.txt"
+        infile.write_text("Furthermore, Te\u200bst data is important.")
+        run_cli(str(infile), '--audit', '-l', 'en')
+        out = capsys.readouterr().out
+        data = json.loads(out)
+        assert data["schema_version"] == "text-humanize.audit_report.v1"
+
+    def test_audit_subcommand(self, tmp_path, capsys):
+        infile = tmp_path / "input.txt"
+        infile.write_text("Furthermore, Te\u200bst data is important.")
+        run_cli('audit', str(infile), '--json', '-l', 'en')
+        out = capsys.readouterr().out
+        data = json.loads(out)
+        assert "ai" in data
+        assert "watermark" in data
 
 
 class TestCLISpin:

@@ -1,5 +1,6 @@
 """Тесты для обнаружения водяных знаков (watermark.py)."""
 
+from texthumanize.core import watermark_report
 from texthumanize.watermark import (
     WatermarkDetector,
     WatermarkReport,
@@ -93,3 +94,12 @@ class TestModuleFunctions:
         report = detect_watermarks(text, lang="en")
         assert report.has_watermarks
         assert len(report.watermark_types) >= 1
+
+    def test_real_unicode_cases_in_report(self):
+        """Report catches soft hyphen, fullwidth, math and mixed-script cases."""
+        text = "So\u00adft \uff41lpha \u2202ata with \u0441yrillic mark"
+        report = watermark_report(text, lang="en")
+        kinds = {span["kind"] for span in report["highlighted_spans"]}
+        assert "zero_width_character" in kinds
+        assert "homoglyph_substitution" in kinds
+        assert report["clean_safe"]["changed"] is True

@@ -18,7 +18,9 @@ from texthumanize.core import (
     analyze,
     analyze_coherence,
     analyze_tone,
+    audit_report,
     detect_ai,
+    detect_ai_explain,
     detect_watermarks,
     explain,
     full_readability,
@@ -26,6 +28,7 @@ from texthumanize.core import (
     paraphrase,
     spin,
     spin_variants,
+    watermark_report,
 )
 
 logger = logging.getLogger(__name__)
@@ -909,6 +912,54 @@ def _handle_detect_command(args: argparse.Namespace, remaining: list[str]) -> No
             _display_detection_plain(result, verbose=verbose)
 
 
+def _subcommand_input_and_json(
+    remaining: list[str],
+    *,
+    default_input: str = "-",
+) -> tuple[str, bool]:
+    input_path = default_input
+    use_json = False
+    for item in remaining:
+        if item == "--json":
+            use_json = True
+        elif not item.startswith("-"):
+            input_path = item
+    return input_path, use_json
+
+
+def _handle_audit_command(args: argparse.Namespace, remaining: list[str]) -> None:
+    """Handle 'audit' subcommand."""
+    audit_input, use_json = _subcommand_input_and_json(remaining)
+    text = _read_input(audit_input)
+    report = audit_report(text, lang=args.lang)
+    if use_json or getattr(args, "json", False):
+        print(json.dumps(report, ensure_ascii=False, indent=2))
+        return
+    print(json.dumps(report, ensure_ascii=False, indent=2))
+
+
+def _handle_watermark_command(args: argparse.Namespace, remaining: list[str]) -> None:
+    """Handle 'watermark' subcommand."""
+    watermark_input, use_json = _subcommand_input_and_json(remaining)
+    text = _read_input(watermark_input)
+    report = watermark_report(text, lang=args.lang)
+    if use_json or getattr(args, "json", False):
+        print(json.dumps(report, ensure_ascii=False, indent=2))
+        return
+    print(json.dumps(report, ensure_ascii=False, indent=2))
+
+
+def _handle_explain_command(args: argparse.Namespace, remaining: list[str]) -> None:
+    """Handle 'explain' subcommand."""
+    explain_input, use_json = _subcommand_input_and_json(remaining)
+    text = _read_input(explain_input)
+    report = detect_ai_explain(text, lang=args.lang)
+    if use_json or getattr(args, "json", False):
+        print(json.dumps(report, ensure_ascii=False, indent=2))
+        return
+    print(json.dumps(report, ensure_ascii=False, indent=2))
+
+
 # ═══════════════════════════════════════════════════════════════
 # MAIN
 # ═══════════════════════════════════════════════════════════════
@@ -929,6 +980,9 @@ Examples:
   texthumanize input.txt -o output.txt --report report.json
   texthumanize input.txt --keep "Brand" "Term"
   texthumanize --analyze input.txt
+  texthumanize audit input.txt --json
+  texthumanize watermark input.txt --json
+  texthumanize explain input.txt --json
   texthumanize detect input.txt
   texthumanize detect input.txt --verbose
   texthumanize train --samples 1000 --epochs 30
@@ -940,7 +994,10 @@ Examples:
 
     parser.add_argument(
         "input",
-        help="Input file ('-' for stdin), or subcommand: detect, train, benchmark",
+        help=(
+            "Input file ('-' for stdin), or subcommand: audit, watermark, "
+            "explain, detect, train, benchmark"
+        ),
     )
     parser.add_argument("-o", "--output", help="Output file (default: stdout)")
     parser.add_argument(
@@ -987,6 +1044,7 @@ Examples:
         "--explain", action="store_true", help="Show detailed change report"
     )
     parser.add_argument("--detect-ai", action="store_true", help="AI detection mode")
+    parser.add_argument("--audit", action="store_true", help="AI + watermark JSON audit")
     parser.add_argument("--verbose", action="store_true", help="Verbose output")
     parser.add_argument("--paraphrase", action="store_true", help="Paraphrase text")
     parser.add_argument(
@@ -997,6 +1055,11 @@ Examples:
     parser.add_argument("--tone-analyze", action="store_true", help="Tone analysis")
     parser.add_argument(
         "--watermarks", action="store_true", help="Detect and remove watermarks"
+    )
+    parser.add_argument(
+        "--watermark-report",
+        action="store_true",
+        help="Print unified watermark JSON report",
     )
     parser.add_argument("--spin", action="store_true", help="Text spinning")
     parser.add_argument(
@@ -1037,6 +1100,15 @@ Examples:
     if args.input == "detect":
         _handle_detect_command(args, remaining)
         return
+    if args.input == "audit":
+        _handle_audit_command(args, remaining)
+        return
+    if args.input == "watermark":
+        _handle_watermark_command(args, remaining)
+        return
+    if args.input == "explain":
+        _handle_explain_command(args, remaining)
+        return
     if args.input == "train":
         _handle_train_command(args, remaining)
         return
@@ -1057,6 +1129,12 @@ Examples:
     # ── Read input ──
     text = _read_input(args.input)
     use_json_flag = getattr(args, "json", False)
+
+    # ── Unified audit ──
+    if getattr(args, "audit", False):
+        result_audit = audit_report(text, lang=args.lang)
+        print(json.dumps(result_audit, ensure_ascii=False, indent=2))
+        return
 
     # ── AI Detection ──
     if getattr(args, "detect_ai", False):
@@ -1135,6 +1213,11 @@ Examples:
         return
 
     # ── Watermarks ──
+    if getattr(args, "watermark_report", False):
+        result_wm_report = watermark_report(text, lang=args.lang)
+        print(json.dumps(result_wm_report, ensure_ascii=False, indent=2))
+        return
+
     if getattr(args, "watermarks", False):
         result_wm = detect_watermarks(text, lang=args.lang)
         if result_wm["has_watermarks"]:

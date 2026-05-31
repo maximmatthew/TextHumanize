@@ -207,7 +207,7 @@ cd js/ && npm install
 ## ⚡ Quick Start
 
 ```python
-from texthumanize import humanize, analyze, detect_ai, explain
+from texthumanize import humanize, analyze, detect_ai, detect_ai_explain, explain
 
 # 1. Humanize text
 result = humanize(
@@ -226,6 +226,10 @@ result = humanize(text, lang="en", profile="web", intensity=70)
 ai = detect_ai("Text to check for AI generation.", lang="en")
 print(f"AI: {ai['score']:.0%} | {ai['verdict']} | Confidence: {ai['confidence']:.0%}")
 
+# 3b. Explainable AI audit
+audit = detect_ai_explain("Furthermore, it is important to note...", lang="en")
+print(audit["highlighted_spans"])
+
 # 4. Text analysis
 report = analyze("Text to analyze.", lang="en")
 print(f"Artificiality: {report.artificiality_score:.1f}/100")
@@ -243,10 +247,11 @@ from texthumanize import (
     humanize_until_human, humanize_sentences, humanize_stream,
     humanize_variants,
     # AI detection
-    detect_ai, detect_ai_batch, detect_ai_sentences, detect_ai_mixed,
+    detect_ai, detect_ai_explain, detect_ai_batch, detect_ai_sentences,
+    detect_ai_mixed, audit_report,
     # NLP tools
     paraphrase, analyze_tone, adjust_tone,
-    detect_watermarks, clean_watermarks,
+    detect_watermarks, clean_watermarks, watermark_report,
     spin, spin_variants,
     analyze_coherence, full_readability,
     # Advanced
@@ -266,6 +271,7 @@ casual = adjust_tone("It is imperative to proceed.", target="casual", lang="en")
 
 # Watermarks — detect and remove hidden characters
 clean = clean_watermarks("Te\u200bxt wi\u200bth hid\u200bden chars")
+wm = watermark_report("Te\u200bxt wi\u200bth hid\u200bden chars", lang="en")
 
 # Spinning — generate N variants
 variants = spin_variants("Original text.", count=5, lang="en")
@@ -717,8 +723,11 @@ results = humanize_sentences(text, lang="en")
 | `paraphrase(text, lang)` | Syntactic paraphrasing (voice transforms, connector shuffling) |
 | `analyze_tone(text, lang)` | Tone analysis (formality, style) |
 | `adjust_tone(text, target, lang)` | Adjust formality to 7 levels |
+| `detect_ai_explain(text, lang)` | Explainable AI detector report with spans and suggested actions |
+| `audit_report(text, lang)` | Combined AI + watermark audit JSON |
 | `detect_watermarks(text)` | Detect 6 types of invisible watermarks |
 | `clean_watermarks(text)` | Remove all detected watermarks |
+| `watermark_report(text, lang)` | Unified Unicode + statistical watermark report |
 | `spin(text, lang)` | Generate a single spun variant |
 | `spin_variants(text, count, lang)` | Generate N spun variants |
 | `analyze_coherence(text, lang)` | Paragraph flow analysis |
@@ -1154,6 +1163,8 @@ texthumanize input.txt -l en -p web -i 70 -o output.txt
 # AI detection
 texthumanize detect input.txt -l en
 texthumanize detect input.txt -l en --json
+texthumanize explain input.txt -l en --json
+texthumanize audit input.txt -l en --json
 
 # With all analysis
 texthumanize input.txt -l en --analyze --explain --detect-ai
@@ -1167,6 +1178,7 @@ texthumanize input.txt -l en --tone-analyze
 
 # Watermark detection
 texthumanize input.txt --watermarks
+texthumanize watermark input.txt --json
 
 # Content spinning
 texthumanize input.txt -l en --spin --variants 5
@@ -1208,10 +1220,12 @@ texthumanize input.txt -l en --verbose --report report.json
 | `--analyze` | Print analysis report |
 | `--explain` | Print change explanation |
 | `--detect-ai` | Run AI detection |
+| `--audit` | Combined AI + watermark audit JSON |
 | `--paraphrase` | Paraphrase mode |
 | `--tone` | Adjust tone to target level |
 | `--tone-analyze` | Analyze current tone |
 | `--watermarks` | Detect watermarks |
+| `--watermark-report` | Unified watermark JSON report |
 | `--spin` | Spin mode |
 | `--variants N` | Number of spin variants |
 | `--coherence` | Coherence analysis |

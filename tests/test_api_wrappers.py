@@ -7,17 +7,23 @@ from texthumanize.core import (
     analyze,
     analyze_coherence,
     analyze_tone,
+    audit_report,
+    clean_safe,
     clean_watermarks,
     detect_ai,
     detect_ai_batch,
+    detect_ai_explain,
     detect_watermarks,
     explain,
     full_readability,
     humanize,
     humanize_chunked,
+    neutralise_aggressive,
     paraphrase,
     spin,
     spin_variants,
+    watermark_report,
+    watermark_report_batch,
 )
 
 # ── detect_ai ─────────────────────────────────────────────────
@@ -61,6 +67,32 @@ class TestDetectAI:
     def test_short_text(self):
         r = detect_ai("Short.", lang="en")
         assert isinstance(r["score"], float)
+
+
+class TestDetectAIExplain:
+    def test_promopilot_schema(self):
+        text = (
+            "Furthermore, it is important to note that this comprehensive "
+            "methodology provides robust results."
+        )
+        r = detect_ai_explain(text, lang="en")
+        assert r["schema_version"] == "text-humanize.ai_explain.v1"
+        assert "score" in r
+        assert "verdict" in r
+        assert "confidence" in r
+        assert "highlighted_spans" in r
+        assert "reasons" in r
+        assert "suggested_actions" in r
+        assert "confidence_interval" in r
+        assert "length_bucket" in r
+
+    def test_metric_contributions_and_marker_spans(self):
+        r = detect_ai_explain(
+            "Furthermore, it is important to note that teams should utilize data.",
+            lang="en",
+        )
+        assert len(r["metric_contributions"]) >= 1
+        assert any(span["kind"] == "ai_marker" for span in r["highlighted_spans"])
 
 
 class TestDetectAIBatch:
@@ -173,6 +205,41 @@ class TestCleanWatermarks:
     def test_auto_lang(self):
         r = clean_watermarks("Текст\u200bс\u200bводяными знаками.", lang="auto")
         assert isinstance(r, str)
+
+
+class TestWatermarkReport:
+    def test_unified_report_schema(self):
+        r = watermark_report("Te\u200bst with hidden mark.", lang="en")
+        assert r["schema_version"] == "text-humanize.watermark_report.v1"
+        assert r["has_watermarks"] is True
+        assert "risk_score" in r
+        assert "findings" in r
+        assert "highlighted_spans" in r
+        assert "clean_safe" in r
+        assert "statistical" in r
+        assert any(span["kind"] == "zero_width_character" for span in r["highlighted_spans"])
+
+    def test_batch_and_safe_helpers(self):
+        reports = watermark_report_batch(["Te\u200bst", "Normal text"], lang="en")
+        assert len(reports) == 2
+        assert clean_safe("Te\u200bst", lang="en") == "Test"
+
+    def test_aggressive_helper_returns_string(self):
+        r = neutralise_aggressive(
+            "Furthermore, this important system can utilize comprehensive data.",
+            lang="en",
+            seed=42,
+        )
+        assert isinstance(r, str)
+
+
+class TestAuditReport:
+    def test_combined_audit_schema(self):
+        r = audit_report("Furthermore, Te\u200bst data is important.", lang="en")
+        assert r["schema_version"] == "text-humanize.audit_report.v1"
+        assert "ai" in r
+        assert "watermark" in r
+        assert "suggested_actions" in r
 
 
 # ── spin ──────────────────────────────────────────────────────

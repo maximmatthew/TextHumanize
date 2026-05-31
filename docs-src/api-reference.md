@@ -52,6 +52,19 @@ result["confidence"]  # float 0-1
 result["metrics"]     # dict — individual metric scores
 ```
 
+### `detect_ai_explain(text, lang)`
+
+Promopilot-ready AI detector report with calibrated score, confidence interval,
+metric contributions, highlighted spans, reasons, and suggested actions.
+
+```python
+from texthumanize import detect_ai_explain
+
+report = detect_ai_explain("Furthermore, it is important to note...", lang="en")
+report["highlighted_spans"]
+report["suggested_actions"]
+```
+
 ### `analyze(text, lang)`
 
 Get text analysis report.
@@ -122,6 +135,19 @@ from texthumanize import detect_watermarks, clean_watermarks
 
 found = detect_watermarks(text)
 clean = clean_watermarks(text)
+```
+
+### `watermark_report(text, lang)`
+
+Unified Unicode + statistical watermark report with positions, safe cleanup,
+p-value/z-score evidence, and optional aggressive neutralisation.
+
+```python
+from texthumanize import watermark_report
+
+report = watermark_report("Te\u200bst", lang="en")
+report["clean_safe"]["text"]
+report["statistical"]["hypotheses"]
 ```
 
 ### `spin(text, lang)` / `spin_variants(text, count, lang)`
