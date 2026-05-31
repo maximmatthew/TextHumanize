@@ -21,6 +21,7 @@ result = humanize(
     constraints={"max_change_ratio": 0.3, "keep_keywords": ["API"]},
     target_style="copywriter",  # Style preset
     only_flagged=False,  # Only humanize AI-flagged sentences
+    minimal=False,       # Alias for only_flagged=True
     custom_dict={"utilize": "use"},
     quality_gate="strict",  # rollback on quality regressions
 )

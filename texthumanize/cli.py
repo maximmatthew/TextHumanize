@@ -1014,6 +1014,8 @@ Examples:
         choices=[
             "chat", "web", "seo", "docs", "formal",
             "academic", "marketing", "social", "email",
+            "seo_article", "landing_page", "product_description",
+            "support_reply", "legal", "social_post",
         ],
         help="Processing profile (default: web)",
     )
@@ -1042,6 +1044,13 @@ Examples:
     )
     parser.add_argument(
         "--explain", action="store_true", help="Show detailed change report"
+    )
+    parser.add_argument(
+        "--minimal",
+        "--only-flagged",
+        dest="minimal",
+        action="store_true",
+        help="Only humanize AI-flagged sentences",
     )
     parser.add_argument("--detect-ai", action="store_true", help="AI detection mode")
     parser.add_argument("--audit", action="store_true", help="AI + watermark JSON audit")
@@ -1499,6 +1508,7 @@ Examples:
                        if args.quality_gate != "off" else {}),
                 },
                 seed=args.seed,
+                minimal=args.minimal,
             )
             elapsed = time.perf_counter() - t0
 
@@ -1541,6 +1551,7 @@ Examples:
                    if args.quality_gate != "off" else {}),
             },
             seed=args.seed,
+            minimal=args.minimal,
         )
 
         if args.output:

@@ -239,6 +239,40 @@ class TestStrictQualityGate:
         )
 
 
+class TestMinimalAndIntentProfiles:
+    def test_minimal_alias_uses_selective_mode(self):
+        result = humanize(
+            "Furthermore, it is important to utilize this comprehensive method.",
+            lang="en",
+            minimal=True,
+            seed=42,
+        )
+        assert isinstance(result.text, str)
+        assert result.original
+
+    @pytest.mark.parametrize(
+        ("profile", "expected"),
+        [
+            ("seo_article", "seo"),
+            ("landing_page", "marketing"),
+            ("product_description", "marketing"),
+            ("support_reply", "email"),
+            ("legal", "formal"),
+            ("social_post", "social"),
+        ],
+    )
+    def test_intent_profile_aliases(self, profile, expected):
+        result = humanize(
+            "This product update helps teams ship support replies faster.",
+            lang="en",
+            profile=profile,
+            intensity=0,
+            constraints={"max_detection_loops": 0},
+            seed=42,
+        )
+        assert result.profile == expected
+
+
 class TestWatermarkReport:
     def test_unified_report_schema(self):
         r = watermark_report("Te\u200bst with hidden mark.", lang="en")

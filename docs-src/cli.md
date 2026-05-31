@@ -51,6 +51,7 @@ texthumanize benchmark -l en --json
 | `--audit` | Combined AI + watermark JSON audit | |
 | `--watermark-report` | Unified watermark JSON report | |
 | `--quality-gate` | Post-processing guard: `off` or `strict` | `off` |
+| `--minimal`, `--only-flagged` | Only humanize AI-flagged sentences | |
 | `--analyze` | Analysis mode | |
 | `--paraphrase` | Paraphrasing mode | |
 | `--tone` | Tone adjustment target | |

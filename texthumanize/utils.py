@@ -10,6 +10,15 @@ from typing import Any, TypedDict
 
 logger = logging.getLogger(__name__)
 
+PROFILE_ALIASES: dict[str, str] = {
+    "seo_article": "seo",
+    "landing_page": "marketing",
+    "product_description": "marketing",
+    "support_reply": "email",
+    "legal": "formal",
+    "social_post": "social",
+}
+
 @dataclass
 class HumanizeOptions:
     """Опции гуманизации текста."""
@@ -50,6 +59,7 @@ class HumanizeOptions:
             "chat", "web", "seo", "docs", "formal",
             "academic", "marketing", "social", "email",
         )
+        self.profile = PROFILE_ALIASES.get(self.profile, self.profile)
         if self.profile not in _VALID_PROFILES:
             raise ValueError(
                 f"Неизвестный профиль: {self.profile}. "

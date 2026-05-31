@@ -76,6 +76,20 @@ class TestCLIHumanize:
         out = capsys.readouterr().out
         assert len(out.strip()) > 0
 
+    def test_process_with_minimal(self, tmp_path, capsys):
+        infile = tmp_path / "input.txt"
+        infile.write_text("Furthermore, it is important to utilize this method.")
+        run_cli(str(infile), '--minimal', '-l', 'en')
+        out = capsys.readouterr().out
+        assert len(out.strip()) > 0
+
+    def test_process_with_intent_profile(self, tmp_path, capsys):
+        infile = tmp_path / "input.txt"
+        infile.write_text("This product update helps support teams move faster.")
+        run_cli(str(infile), '-p', 'product_description', '-l', 'en')
+        out = capsys.readouterr().out
+        assert len(out.strip()) > 0
+
 
 class TestCLIAnalyze:
     def test_analyze_mode(self, tmp_path, capsys):

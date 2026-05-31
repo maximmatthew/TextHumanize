@@ -113,6 +113,7 @@ def humanize(
     seed: int | None = None,
     target_style: object | str | None = None,
     only_flagged: bool = False,
+    minimal: bool = False,
     custom_dict: dict[str, str | list[str]] | None = None,
     quality_gate: str | None = None,
     *,
@@ -170,6 +171,8 @@ def humanize(
         only_flagged: Если True, гуманизировать только предложения,
             которые detect_ai_sentences помечает как AI (ai_probability > 0.5).
             Предложения с label="human" остаются без изменений.
+        minimal: Алиас для only_flagged=True. Используется для минимального
+            вмешательства: править только AI-like предложения.
         custom_dict: Пользовательский словарь замен.
             Формат: {"слово": "замена"} или {"слово": ["вар1", "вар2"]}.
             Замены применяются дополнительно к встроенным словарям.
@@ -291,7 +294,7 @@ def humanize(
     pipeline = Pipeline(options=options)
 
     # ── Selective humanization ────────────────────────────────
-    if only_flagged:
+    if only_flagged or minimal:
         return _humanize_flagged_only(
             text, detected_lang, pipeline, options,
         )
