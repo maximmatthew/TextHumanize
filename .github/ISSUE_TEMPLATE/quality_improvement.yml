@@ -1,0 +1,80 @@
+name: Humanization or detector quality report
+description: Report low-quality output, false positives, false negatives, or watermark issues.
+title: "[Quality]: "
+labels: ["quality", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form for examples where the library works technically but the output or score is not good enough.
+        Please avoid sharing private or copyrighted text.
+  - type: dropdown
+    id: quality_area
+    attributes:
+      label: Quality area
+      options:
+        - Humanization output sounds unnatural
+        - Meaning changed too much
+        - AI detector false positive
+        - AI detector false negative
+        - Watermark detector false positive
+        - Watermark detector false negative
+        - Watermark cleaning damaged text
+        - Language-specific issue
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: language
+    attributes:
+      label: Text language
+      placeholder: "en, ru, uk, de, etc."
+    validations:
+      required: true
+  - type: input
+    id: domain
+    attributes:
+      label: Text domain
+      placeholder: "blog, SEO, academic, legal, product page, social, docs, etc."
+  - type: textarea
+    id: input_text
+    attributes:
+      label: Input text
+      description: Synthetic, shortened, or redacted samples are welcome.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: output_text
+    attributes:
+      label: Output text or detector report
+      description: Include before/after scores when available.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: desired
+    attributes:
+      label: Desired result
+      description: What would a better output, score, or report look like?
+  - type: textarea
+    id: settings
+    attributes:
+      label: Settings used
+      placeholder: |
+        profile:
+        intensity:
+        seed:
+        preserve:
+        constraints:
+        backend:
+      render: yaml
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: I understand TextHumanize does not guarantee passing external AI detectors.
+          required: true
+        - label: I removed or redacted confidential text.
+          required: true

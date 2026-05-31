@@ -1,0 +1,56 @@
+name: Feature request
+description: Propose a new capability or API improvement.
+title: "[Feature]: "
+labels: ["enhancement", "needs-triage"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What user problem should this solve?
+      placeholder: Describe the workflow, limitation, or missing capability.
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Humanization quality
+        - AI detection
+        - Watermark forensics
+        - Benchmarks and evaluation
+        - Language support
+        - Performance
+        - CLI or API
+        - Python package
+        - TypeScript package
+        - PHP package
+        - Documentation
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Describe the behavior, API, command, or configuration you want.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: What workarounds or simpler approaches have you considered?
+  - type: textarea
+    id: api
+    attributes:
+      label: API sketch or example
+      render: python
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Contribution
+      options:
+        - label: I would be willing to help test this.
+        - label: I would be willing to open a pull request.

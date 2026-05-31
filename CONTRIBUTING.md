@@ -87,7 +87,13 @@ Open an issue with:
 
 ## Code of Conduct
 
-Be respectful and constructive. We follow the [Contributor Covenant](https://www.contributor-covenant.org/).
+Be respectful and constructive. See [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
+for project expectations and reporting paths.
+
+## Security Reporting
+
+Please do not open public issues for security vulnerabilities. Follow the
+private reporting process in [SECURITY.md](SECURITY.md).
 
 ## License
 
