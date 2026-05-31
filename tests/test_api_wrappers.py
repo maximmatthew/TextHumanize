@@ -240,6 +240,21 @@ class TestStrictQualityGate:
 
 
 class TestMinimalAndIntentProfiles:
+    def test_humanize_explain_metadata(self):
+        result = humanize(
+            "Furthermore, it is important to utilize this comprehensive method.",
+            lang="en",
+            intensity=45,
+            constraints={"max_detection_loops": 0},
+            seed=42,
+        )
+        report = result.metrics_after["humanize_explain"]
+        assert report["schema_version"] == "text-humanize.humanize_explain.v1"
+        assert len(report["top_change_reasons"]) <= 5
+        assert len(report["remaining_risks"]) <= 5
+        assert "sentence_report" in report
+        assert "quality" in report
+
     def test_minimal_alias_uses_selective_mode(self):
         result = humanize(
             "Furthermore, it is important to utilize this comprehensive method.",
@@ -249,6 +264,7 @@ class TestMinimalAndIntentProfiles:
         )
         assert isinstance(result.text, str)
         assert result.original
+        assert result.metrics_after["humanize_explain"]["top_change_reasons"]
 
     @pytest.mark.parametrize(
         ("profile", "expected"),

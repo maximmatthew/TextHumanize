@@ -37,6 +37,9 @@ result.change_ratio   # float — proportion changed
 result.quality_score  # float — quality metric
 result.metrics_before # dict — metrics before
 result.metrics_after  # dict — metrics after
+result.metrics_after["humanize_explain"]
+# Promopilot-ready metadata:
+# top_change_reasons, remaining_risks, sentence_report, AI score delta
 ```
 
 ### `detect_ai(text, lang)`

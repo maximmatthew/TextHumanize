@@ -118,6 +118,63 @@ class TestGoldenEnglish:
         assert result.lang == "en"
 
 
+class TestShortCommercialGoldenSet:
+    """Golden-set for short commercial copy common in Promopilot flows."""
+
+    @pytest.mark.parametrize(
+        ("text", "profile", "protected_terms"),
+        [
+            (
+                (
+                    "Furthermore, Acme CRM provides a comprehensive solution "
+                    "for sales teams. Start your 14-day trial at "
+                    "https://example.com for $29/month."
+                ),
+                "landing_page",
+                ["Acme", "14", "29", "https://example.com"],
+            ),
+            (
+                (
+                    "Our UltraClean bottle utilizes advanced insulation to ensure "
+                    "optimal hydration throughout the day."
+                ),
+                "product_description",
+                ["UltraClean"],
+            ),
+            (
+                (
+                    "We sincerely apologize for the inconvenience. Your order "
+                    "A12345 will be reviewed by our support team today."
+                ),
+                "support_reply",
+                ["A12345", "support"],
+            ),
+        ],
+    )
+    def test_short_commercial_copy_is_safe_to_humanize(
+        self, text, profile, protected_terms,
+    ):
+        result = humanize(
+            text,
+            lang="en",
+            profile=profile,
+            intensity=55,
+            preserve={"urls": True, "numbers": True, "brand_terms": protected_terms},
+            constraints={"max_detection_loops": 0},
+            seed=42,
+        )
+
+        assert isinstance(result.text, str)
+        assert result.change_ratio <= 0.80
+        for term in protected_terms:
+            assert term in result.text
+
+        explain_report = result.metrics_after["humanize_explain"]
+        assert explain_report["top_change_reasons"]
+        assert len(explain_report["remaining_risks"]) <= 5
+        assert "sentence_report" in explain_report
+
+
 class TestPropertyBased:
     """Property-тесты: инварианты, которые всегда должны выполняться."""
 
@@ -293,4 +350,3 @@ class TestFrozenSnapshots:
         if r1.change_ratio > 0 and r2.change_ratio > 0:
             # Very likely different, but not guaranteed—skip if same
             pass  # This is a soft check
-

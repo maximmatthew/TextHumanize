@@ -15,7 +15,7 @@
 [![PHP 8.1+](https://img.shields.io/badge/php-8.1+-777BB4.svg?logo=php&logoColor=white)](https://www.php.net/)
 &nbsp;&nbsp;
 [![CI](https://github.com/ksanyok/TextHumanize/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/ksanyok/TextHumanize/actions/workflows/ci.yml)
-[![Tests](https://img.shields.io/badge/tests-2101%20passed-2ea44f.svg?logo=pytest&logoColor=white)](https://github.com/ksanyok/TextHumanize/actions/workflows/ci.yml)
+[![Tests](https://img.shields.io/badge/tests-2105%20passed-2ea44f.svg?logo=pytest&logoColor=white)](https://github.com/ksanyok/TextHumanize/actions/workflows/ci.yml)
 &nbsp;&nbsp;
 [![Zero Dependencies](https://img.shields.io/badge/dependencies-zero-brightgreen.svg)]()
 [![PyPI](https://img.shields.io/pypi/v/texthumanize.svg?logo=pypi&logoColor=white)](https://pypi.org/project/texthumanize/)
@@ -23,7 +23,7 @@
 
 <br/>
 
-**235,000+ lines of code** · **122 Python modules** · **38-stage pipeline** · **25 languages + universal** · **2,101 tests**
+**235,000+ lines of code** · **122 Python modules** · **38-stage pipeline** · **25 languages + universal** · **2,105 tests**
 
 **3 proprietary technologies:** PHANTOM™ (gradient-guided adversarial engine) · ASH™ (adaptive signature humanization) · SentenceValidator™ (interstage quality gate)
 
@@ -112,7 +112,7 @@ TextHumanize is a **pure-algorithmic text processing engine** that transforms AI
 | 📊 | **Full analytics** | Readability (6 indices), coherence, plagiarism, stylometric fingerprint, content health score |
 | 🎭 | **Tone control** | Analyze and adjust formality across 7 levels |
 | 📚 | **2,944 dictionary entries** | EN 1,733 + RU 1,345 + UK 1,042 + DE 874 + FR 718 + ES 749 + more |
-| 🏢 | **Enterprise-ready** | Dual license, 2,101+ tests, CI/CD, REST API, Docker, on-prem deployment |
+| 🏢 | **Enterprise-ready** | Dual license, 2,105+ tests, CI/CD, REST API, Docker, on-prem deployment |
 | 🛡️ | **Secure by design** | Input limits, zero network calls, linear-time regex, no eval/exec |
 | 📝 | **Full auditability** | Every call returns `change_ratio`, `quality_score`, `similarity`, `explain()` report |
 
@@ -218,6 +218,7 @@ result = humanize(
 print(result.text)           # Normalized text
 print(result.change_ratio)   # 0.50 — proportion of text changed
 print(result.quality_score)  # Quality metric
+print(result.metrics_after["humanize_explain"]["remaining_risks"])
 
 # 2. Control with profiles and intensity
 result = humanize(text, lang="en", profile="web", intensity=70)
@@ -456,7 +457,7 @@ AI score: 75% → 17%  (reduction: 58 percentage points)
 | Pipeline stages | **38** | 2–4 |
 | Languages | **25 + universal** | 1–2 |
 | AI detection | ✅ 3-layer (18 + 35 + MLP) | ❌ |
-| Python tests | **2,101** | 10–50 |
+| Python tests | **2,105** | 10–50 |
 | Codebase size | **235,000+ lines** | 500–2K |
 | Platforms | Python + JS + PHP | Single |
 | Plugin system | ✅ | ❌ |
@@ -683,6 +684,7 @@ results = detect_ai_batch(["Text 1", "Text 2", "Text 3"], lang="en")
 | `.change_ratio` | `float` | Proportion of text changed (0.0–1.0) |
 | `.quality_score` | `float` | Quality metric |
 | `.similarity` | `float` | Semantic similarity to original |
+| `.metrics_after["humanize_explain"]` | `dict` | Top 5 change reasons, top 5 remaining risks, sentence-level risk deltas |
 | `.stages` | `list` | Stages applied with timing |
 
 ### Other Humanization Modes
@@ -1575,14 +1577,14 @@ cd php/ && composer install && vendor/bin/phpunit
 
 | Platform | Tests | Status |
 |:---------|------:|:------:|
-| **Python** (pytest, 3.9–3.13) | 2,101 | ✅ All passing |
+| **Python** (pytest, 3.9–3.13) | 2,105 | ✅ All passing |
 | **PHP** (PHPUnit, 8.1–8.3) | 223 | ✅ All passing |
 | **TypeScript** (Jest) | 28 | ✅ All passing |
-| **Total** | **2,352** | ✅ |
+| **Total** | **2,356** | ✅ |
 
 ```bash
 # Python
-pytest -q                          # 2,101 passed
+pytest -q                          # 2,105 passed
 pytest --cov=texthumanize          # Coverage report
 ruff check texthumanize/           # Lint
 mypy texthumanize/                 # Type check
@@ -1631,7 +1633,7 @@ cd js && npm test                  # 28 tests
 | **Privacy** | 100% local. Zero network calls. No data leaves your server |
 | **Auditability** | Every call returns `change_ratio`, `quality_score`, `similarity`, `explain()` report |
 | **Integration** | Python SDK · JS SDK · PHP SDK · CLI · REST API · Docker · SSE streaming |
-| **Reliability** | 2,352 tests across 3 platforms, CI/CD with ruff + mypy |
+| **Reliability** | 2,356 tests across 3 platforms, CI/CD with ruff + mypy |
 | **No vendor lock-in** | Zero dependencies. No cloud APIs, no API keys, no rate limits |
 | **Language coverage** | 14 full language packs + universal processor for any language |
 | **Self-hosted** | Docker image, pip install, on-premise deployment |
@@ -1734,7 +1736,7 @@ Try the [Live Demo](https://texthumanize.link/). For local use, the REST API + S
 - **Final sanitization** in `run()` method catches post-loop residual artifacts
 
 ### Stats
-- **2,101 tests** · **122 modules** · **235,000+ lines** · **25 languages** · **38-stage pipeline**
+- **2,105 tests** · **122 modules** · **235,000+ lines** · **25 languages** · **38-stage pipeline**
 
 ---
 

@@ -295,9 +295,10 @@ def humanize(
 
     # ── Selective humanization ────────────────────────────────
     if only_flagged or minimal:
-        return _humanize_flagged_only(
+        selective_result = _humanize_flagged_only(
             text, detected_lang, pipeline, options,
         )
+        return _attach_humanize_explain(selective_result, detected_lang)
 
     result = pipeline.run(text, detected_lang)
 
@@ -376,6 +377,8 @@ def humanize(
                 )
         except Exception:
             pass  # Grammar cleanup is best-effort
+
+    result = _attach_humanize_explain(result, detected_lang)
 
     # ── Cache result (only deterministic calls with seed) ─────
     if seed is not None:
@@ -593,6 +596,368 @@ def _humanize_flagged_only(
             "connector_ratio": metrics_after.connector_ratio,
             "repetition_score": metrics_after.repetition_score,
             "typography_score": metrics_after.typography_score,
+        },
+    )
+
+
+_HUMANIZE_CHANGE_GUIDANCE: dict[str, tuple[str, str]] = {
+    "watermark_cleaning": (
+        "Watermark or invisible Unicode cleanup",
+        "Removed hidden characters or watermark-like Unicode artifacts.",
+    ),
+    "debureaucratization": (
+        "Formal wording softened",
+        "Replaced bureaucratic or over-formal phrasing with more natural wording.",
+    ),
+    "naturalization": (
+        "AI-like phrasing naturalized",
+        "Adjusted generic AI-style phrasing toward a more human style.",
+    ),
+    "universal": (
+        "Universal naturalization",
+        "Applied language-neutral cleanup for generic AI markers and stiff phrasing.",
+    ),
+    "repetitions": (
+        "Repetition reduced",
+        "Reduced repeated wording or repeated sentence patterns.",
+    ),
+    "structure": (
+        "Sentence rhythm varied",
+        "Changed structure to avoid uniform, template-like sentence flow.",
+    ),
+    "syntax_rewrite": (
+        "Syntax varied",
+        "Changed clause order or sentence shape while preserving meaning.",
+    ),
+    "sentence_restructuring": (
+        "Sentence structure diversified",
+        "Adjusted sentence length and structure for more natural rhythm.",
+    ),
+    "readability": (
+        "Readability improved",
+        "Adjusted sentence length and flow for easier reading.",
+    ),
+    "tone": (
+        "Tone aligned",
+        "Aligned wording with the requested profile and audience.",
+    ),
+    "grammar": (
+        "Grammar polished",
+        "Applied grammar and punctuation cleanup after rewriting.",
+    ),
+    "grammar_guard": (
+        "Grammar guard applied",
+        "Checked and rolled back awkward collocations or agreement artifacts.",
+    ),
+    "coherence": (
+        "Coherence repaired",
+        "Smoothed transitions and paragraph-level flow.",
+    ),
+    "custom_dict": (
+        "Custom dictionary applied",
+        "Applied user-provided terminology replacements.",
+    ),
+    "detection_loop": (
+        "AI detector loop improved output",
+        "Ran an extra targeted pass because detector risk stayed elevated.",
+    ),
+    "phantom": (
+        "PHANTOM optimization applied",
+        "Optimized the output against detector-style statistical signals.",
+    ),
+    "quality_gate_strict_rollback": (
+        "Strict quality gate rollback",
+        "Restored safer text because similarity, grammar, or readability regressed.",
+    ),
+    "final_sanitization": (
+        "Final artifact cleanup",
+        "Removed late-stage connector or punctuation artifacts.",
+    ),
+}
+
+
+def _change_reason_key(change_type: str) -> str:
+    if change_type in _HUMANIZE_CHANGE_GUIDANCE:
+        return change_type
+    if "bureau" in change_type:
+        return "debureaucratization"
+    if "natural" in change_type:
+        return "naturalization"
+    if "repeat" in change_type:
+        return "repetitions"
+    if "syntax" in change_type:
+        return "syntax_rewrite"
+    if "readability" in change_type:
+        return "readability"
+    if "grammar" in change_type:
+        return "grammar"
+    if "coherence" in change_type:
+        return "coherence"
+    if "watermark" in change_type:
+        return "watermark_cleaning"
+    return change_type
+
+
+def _top_humanize_change_reasons(
+    changes: list[dict[str, Any]],
+    *,
+    limit: int = 5,
+) -> list[dict[str, Any]]:
+    grouped: dict[str, dict[str, Any]] = {}
+    for index, change in enumerate(changes):
+        change_type = str(change.get("type", "unknown"))
+        key = _change_reason_key(change_type)
+        title, reason = _HUMANIZE_CHANGE_GUIDANCE.get(
+            key,
+            (
+                change_type.replace("_", " ").title(),
+                str(change.get("description") or "Pipeline stage changed the text."),
+            ),
+        )
+        entry = grouped.setdefault(
+            key,
+            {
+                "type": key,
+                "title": title,
+                "reason": reason,
+                "count": 0,
+                "first_seen": index,
+                "examples": [],
+            },
+        )
+        entry["count"] = int(entry["count"]) + 1
+        description = str(change.get("description") or "").strip()
+        examples = cast(list[str], entry["examples"])
+        if description and description not in examples and len(examples) < 3:
+            examples.append(description)
+
+    ranked = sorted(
+        grouped.values(),
+        key=lambda item: (-int(item["count"]), int(item["first_seen"])),
+    )
+    for item in ranked:
+        item.pop("first_seen", None)
+    return ranked[:limit]
+
+
+def _humanize_remaining_risks(
+    result: HumanizeResult,
+    lang: str,
+    *,
+    limit: int = 5,
+) -> list[dict[str, Any]]:
+    after = result.metrics_after
+    risks: list[dict[str, Any]] = []
+
+    metric_rules = [
+        (
+            "artificiality_score",
+            _safe_float(after.get("artificiality_score")) / 100.0,
+            0.25,
+            "Residual artificiality is still visible in the output.",
+            "Review the highest-risk sentences or use minimal=False with a higher intensity.",
+        ),
+        (
+            "connector_ratio",
+            _safe_float(after.get("connector_ratio")),
+            0.08,
+            "Connector usage may still look template-like.",
+            "Replace generic transitions with context-specific cause, contrast, or sequence.",
+        ),
+        (
+            "bureaucratic_ratio",
+            _safe_float(after.get("bureaucratic_ratio")),
+            0.06,
+            "Some formal or bureaucratic phrasing may remain.",
+            "Use shorter verbs and remove unnecessary abstract nouns.",
+        ),
+        (
+            "repetition_score",
+            _safe_float(after.get("repetition_score")),
+            0.30,
+            "Repeated wording or repeated structure may remain.",
+            "Merge repeated claims and vary sentence starts.",
+        ),
+        (
+            "predictability_score",
+            _safe_float(after.get("predictability_score")),
+            0.65,
+            "The output may still be too predictable.",
+            "Add specific examples, concrete entities, and less uniform rhythm where true.",
+        ),
+    ]
+    for metric, score, threshold, message, action in metric_rules:
+        if score < threshold:
+            continue
+        risks.append({
+            "type": "metric",
+            "metric": metric,
+            "severity": _severity(score),
+            "score": round(_clamp(score), 4),
+            "message": message,
+            "suggested_action": action,
+        })
+
+    try:
+        marker_spans = _scan_ai_marker_spans(result.text, lang, max_spans=limit)
+    except Exception:
+        marker_spans = []
+    for span in marker_spans:
+        risks.append({
+            "type": "highlighted_span",
+            "metric": "ai_marker",
+            "severity": span.get("severity", "medium"),
+            "score": 0.55,
+            "message": f"AI-like phrase remains: {span.get('text', '')}",
+            "suggested_action": span.get(
+                "suggested_action",
+                "Rewrite the phrase in a more specific, context-aware way.",
+            ),
+            "span": {
+                "start": span.get("start"),
+                "end": span.get("end"),
+                "text": span.get("text"),
+            },
+        })
+
+    if not risks:
+        risks.append({
+            "type": "residual_detector_risk",
+            "severity": "low",
+            "score": 0.0,
+            "message": "No strong residual AI-like signal was isolated.",
+            "suggested_action": "Review highlighted spans only if the text is business-critical.",
+        })
+
+    return sorted(
+        risks,
+        key=lambda risk: _safe_float(risk.get("score")),
+        reverse=True,
+    )[:limit]
+
+
+def _sentence_spans(text: str) -> list[dict[str, Any]]:
+    spans: list[dict[str, Any]] = []
+    for match in re.finditer(r"\S[^.!?\n]*(?:[.!?]+|$)", text):
+        sentence = match.group(0).strip()
+        if not sentence:
+            continue
+        offset = match.group(0).find(sentence)
+        start = match.start() + max(offset, 0)
+        spans.append({
+            "start": start,
+            "end": start + len(sentence),
+            "text": sentence,
+        })
+    return spans
+
+
+def _humanize_sentence_report(
+    result: HumanizeResult,
+    lang: str,
+    *,
+    limit: int = 8,
+) -> list[dict[str, Any]]:
+    before_sentences = _sentence_spans(result.original)
+    after_sentences = _sentence_spans(result.text)
+    try:
+        marker_spans = _scan_ai_marker_spans(result.text, lang, max_spans=50)
+    except Exception:
+        marker_spans = []
+    top_operations = [
+        reason["type"]
+        for reason in _top_humanize_change_reasons(
+            cast(list[dict[str, Any]], result.changes),
+            limit=3,
+        )
+    ]
+    rows: list[dict[str, Any]] = []
+
+    for index, after_sentence in enumerate(after_sentences[:limit]):
+        before_sentence = before_sentences[index] if index < len(before_sentences) else {}
+        start = int(after_sentence["start"])
+        end = int(after_sentence["end"])
+        sentence_markers = [
+            span for span in marker_spans
+            if start <= int(span.get("start", -1)) < end
+        ]
+        changed = before_sentence.get("text", "") != after_sentence.get("text", "")
+        risk_score = 0.55 if sentence_markers else 0.0
+        if sentence_markers:
+            status = "remaining_ai_risk"
+        elif changed:
+            status = "improved"
+        else:
+            status = "ok"
+        rows.append({
+            "index": index,
+            "status": status,
+            "risk_score": risk_score,
+            "changed": changed,
+            "before_text": before_sentence.get("text", ""),
+            "after_text": after_sentence.get("text", ""),
+            "applied_operations": top_operations if changed else [],
+            "remaining_markers": [
+                {
+                    "text": marker.get("text"),
+                    "category": marker.get("category"),
+                    "reason": marker.get("reason"),
+                }
+                for marker in sentence_markers[:3]
+            ],
+            "reason": (
+                "AI-like marker remains in this sentence."
+                if sentence_markers
+                else "Sentence changed and no AI-marker span remains."
+                if changed
+                else "No sentence-level AI-marker signal was isolated."
+            ),
+        })
+
+    return rows
+
+
+def _attach_humanize_explain(result: HumanizeResult, lang: str) -> HumanizeResult:
+    """Attach top reasons and remaining risks to HumanizeResult metadata."""
+    changes = cast(list[dict[str, Any]], result.changes)
+    try:
+        before_ai = _safe_float(result.metrics_before.get("artificiality_score")) / 100.0
+        after_ai = _safe_float(result.metrics_after.get("artificiality_score")) / 100.0
+        report = {
+            "schema_version": "text-humanize.humanize_explain.v1",
+            "top_change_reasons": _top_humanize_change_reasons(changes),
+            "remaining_risks": _humanize_remaining_risks(result, lang),
+            "sentence_report": _humanize_sentence_report(result, lang),
+            "ai_score_before": round(_clamp(before_ai), 4),
+            "ai_score_after": round(_clamp(after_ai), 4),
+            "ai_score_delta": round(_clamp(before_ai) - _clamp(after_ai), 4),
+            "method": "lightweight_from_pipeline_metrics_and_marker_spans",
+            "quality": {
+                "change_ratio": round(result.change_ratio, 4),
+                "similarity": round(result.similarity, 4),
+                "quality_score": round(result.quality_score, 4),
+            },
+        }
+    except Exception as exc:
+        report = {
+            "schema_version": "text-humanize.humanize_explain.v1",
+            "error": str(exc),
+            "top_change_reasons": _top_humanize_change_reasons(changes),
+            "remaining_risks": [],
+            "sentence_report": [],
+        }
+
+    return HumanizeResult(
+        original=result.original,
+        text=result.text,
+        lang=result.lang,
+        profile=result.profile,
+        intensity=result.intensity,
+        changes=result.changes,
+        metrics_before=result.metrics_before,
+        metrics_after={
+            **result.metrics_after,
+            "humanize_explain": report,
         },
     )
 
