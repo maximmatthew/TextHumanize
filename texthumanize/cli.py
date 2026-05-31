@@ -1071,6 +1071,12 @@ Examples:
     )
     parser.add_argument("--grammar", action="store_true", help="Grammar check")
     parser.add_argument("--grammar-fix", action="store_true", help="Auto-fix grammar")
+    parser.add_argument(
+        "--quality-gate",
+        choices=["off", "strict"],
+        default="off",
+        help="Post-processing quality gate (default: off)",
+    )
     parser.add_argument("--health", action="store_true", help="Content health score")
     parser.add_argument("--uniqueness", action="store_true", help="Uniqueness score")
     parser.add_argument("--api", action="store_true", help="Start API server")
@@ -1489,6 +1495,8 @@ Examples:
                 constraints={
                     "max_change_ratio": args.max_change,
                     "keep_keywords": args.keep,
+                    **({"quality_gate": args.quality_gate}
+                       if args.quality_gate != "off" else {}),
                 },
                 seed=args.seed,
             )
@@ -1529,6 +1537,8 @@ Examples:
             constraints={
                 "max_change_ratio": args.max_change,
                 "keep_keywords": args.keep,
+                **({"quality_gate": args.quality_gate}
+                   if args.quality_gate != "off" else {}),
             },
             seed=args.seed,
         )

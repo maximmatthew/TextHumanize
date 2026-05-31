@@ -221,6 +221,7 @@ print(result.quality_score)  # Quality metric
 
 # 2. Control with profiles and intensity
 result = humanize(text, lang="en", profile="web", intensity=70)
+strict = humanize(text, lang="en", quality_gate="strict")
 
 # 3. AI Detection — 3-layer ensemble
 ai = detect_ai("Text to check for AI generation.", lang="en")
@@ -669,6 +670,7 @@ results = detect_ai_batch(["Text 1", "Text 2", "Text 3"], lang="en")
 | `preserve` | `list[str]` | `[]` | Keywords to never modify |
 | `max_change_ratio` | `float` | `None` | Maximum allowed proportion of change (0.0–1.0) |
 | `constraints` | `dict` | `{}` | Advanced constraints (`keep_keywords`, etc.) |
+| `quality_gate` | `str` | `None` | Use `"strict"` to rollback on similarity, grammar, or readability regression |
 | `backend` | `str` | `None` | LLM backend: `"openai"`, `"ollama"`, `"oss"`, `"auto"` |
 
 **Returns `HumanizeResult`:**
@@ -1168,6 +1170,7 @@ texthumanize audit input.txt -l en --json
 
 # With all analysis
 texthumanize input.txt -l en --analyze --explain --detect-ai
+texthumanize input.txt -l en --quality-gate strict
 
 # Paraphrasing
 texthumanize input.txt -l en --paraphrase -o out.txt
@@ -1226,6 +1229,7 @@ texthumanize input.txt -l en --verbose --report report.json
 | `--tone-analyze` | Analyze current tone |
 | `--watermarks` | Detect watermarks |
 | `--watermark-report` | Unified watermark JSON report |
+| `--quality-gate` | `off` or `strict` post-processing guard |
 | `--spin` | Spin mode |
 | `--variants N` | Number of spin variants |
 | `--coherence` | Coherence analysis |

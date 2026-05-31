@@ -114,6 +114,7 @@ def humanize(
     target_style: object | str | None = None,
     only_flagged: bool = False,
     custom_dict: dict[str, str | list[str]] | None = None,
+    quality_gate: str | None = None,
     *,
     auto_evade: bool = False,
     target_ai_score: float = 0.30,
@@ -160,6 +161,8 @@ def humanize(
             - max_change_ratio (float): Максимальная доля изменений (0-1).
             - min_sentence_length (int): Минимальная длина предложения.
             - keep_keywords (list[str]): Ключевые слова для SEO.
+        quality_gate: Если "strict", откатывает результат при падении
+            similarity, ухудшении grammar score или readability.
         seed: Сид для воспроизводимости результатов.
         target_style: Целевой стилистический отпечаток.
             Может быть StylisticFingerprint или имя пресета (str):
@@ -272,6 +275,8 @@ def humanize(
         options.preserve.update(preserve)
     if constraints:
         options.constraints.update(constraints)
+    if quality_gate is not None:
+        options.constraints["quality_gate"] = quality_gate
 
     # ── Cache lookup ────────────────────────────────────────────
     if seed is not None:

@@ -22,6 +22,7 @@ result = humanize(
     target_style="copywriter",  # Style preset
     only_flagged=False,  # Only humanize AI-flagged sentences
     custom_dict={"utilize": "use"},
+    quality_gate="strict",  # rollback on quality regressions
 )
 
 # Returns HumanizeResult

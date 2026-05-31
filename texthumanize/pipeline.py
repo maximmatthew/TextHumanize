@@ -529,7 +529,131 @@ class Pipeline:
                 metrics_after=result.metrics_after,
             )
 
+        result = self._apply_strict_quality_gate(text, result, lang)
         return result
+
+    def _apply_strict_quality_gate(
+        self,
+        original: str,
+        result: HumanizeResult,
+        lang: str,
+    ) -> HumanizeResult:
+        """Rollback result when strict quality constraints regress."""
+        if self.options.constraints.get("quality_gate") != "strict":
+            return result
+
+        constraints = self.options.constraints
+        min_similarity = float(constraints.get("min_similarity", 0.50))
+        max_grammar_drop = float(constraints.get("max_grammar_score_drop", 8.0))
+        max_readability_grade_increase = float(
+            constraints.get("max_readability_grade_increase", 4.0)
+        )
+
+        reasons: list[str] = []
+        gate_meta: dict[str, object] = {
+            "mode": "strict",
+            "min_similarity": min_similarity,
+        }
+
+        if result.similarity < min_similarity:
+            reasons.append(
+                f"similarity {result.similarity:.2f} < {min_similarity:.2f}"
+            )
+
+        try:
+            from texthumanize.grammar import check_grammar
+
+            grammar_before = check_grammar(original, lang=lang)
+            grammar_after = check_grammar(result.text, lang=lang)
+            grammar_drop = grammar_before.score - grammar_after.score
+            errors_before = sum(
+                1 for issue in grammar_before.issues
+                if issue.severity == "error"
+            )
+            errors_after = sum(
+                1 for issue in grammar_after.issues
+                if issue.severity == "error"
+            )
+            gate_meta["grammar"] = {
+                "score_before": grammar_before.score,
+                "score_after": grammar_after.score,
+                "score_drop": round(grammar_drop, 2),
+                "errors_before": errors_before,
+                "errors_after": errors_after,
+            }
+            if grammar_drop > max_grammar_drop:
+                reasons.append(
+                    f"grammar score dropped {grammar_drop:.1f} > {max_grammar_drop:.1f}"
+                )
+            if errors_after > errors_before + 1:
+                reasons.append(
+                    f"grammar errors increased {errors_before}→{errors_after}"
+                )
+        except Exception as exc:
+            gate_meta["grammar_error"] = str(exc)
+
+        try:
+            analyzer = TextAnalyzer(lang=lang)
+            rb = analyzer.full_readability(original)
+            ra = analyzer.full_readability(result.text)
+            grade_delta = (
+                ra.get("flesch_kincaid_grade", 0.0)
+                - rb.get("flesch_kincaid_grade", 0.0)
+            )
+            sentence_delta = (
+                ra.get("avg_sentence_length", 0.0)
+                - rb.get("avg_sentence_length", 0.0)
+            )
+            gate_meta["readability"] = {
+                "flesch_kincaid_before": round(rb.get("flesch_kincaid_grade", 0.0), 3),
+                "flesch_kincaid_after": round(ra.get("flesch_kincaid_grade", 0.0), 3),
+                "grade_delta": round(grade_delta, 3),
+                "avg_sentence_length_delta": round(sentence_delta, 3),
+            }
+            if grade_delta > max_readability_grade_increase and sentence_delta > 5.0:
+                reasons.append(
+                    f"readability grade worsened +{grade_delta:.1f}"
+                )
+        except Exception as exc:
+            gate_meta["readability_error"] = str(exc)
+
+        if not reasons:
+            gate_meta["passed"] = True
+            return HumanizeResult(
+                original=result.original,
+                text=result.text,
+                lang=result.lang,
+                profile=result.profile,
+                intensity=result.intensity,
+                changes=result.changes,
+                metrics_before=result.metrics_before,
+                metrics_after={
+                    **result.metrics_after,
+                    "strict_quality_gate": gate_meta,
+                },
+            )
+
+        gate_meta["passed"] = False
+        gate_meta["reasons"] = reasons
+        return HumanizeResult(
+            original=original,
+            text=original,
+            lang=result.lang,
+            profile=result.profile,
+            intensity=result.intensity,
+            changes=[
+                *result.changes,
+                {
+                    "type": "quality_gate_strict_rollback",
+                    "description": "Strict quality gate rollback: " + "; ".join(reasons),
+                },
+            ],
+            metrics_before=result.metrics_before,
+            metrics_after={
+                **result.metrics_before,
+                "strict_quality_gate": gate_meta,
+            },
+        )
 
     # ── LLM-assisted rewrite helper ─────────────────────────
 

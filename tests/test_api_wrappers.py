@@ -207,6 +207,38 @@ class TestCleanWatermarks:
         assert isinstance(r, str)
 
 
+class TestStrictQualityGate:
+    def test_strict_gate_records_pass(self):
+        result = humanize(
+            "This is a simple text for the strict quality gate.",
+            lang="en",
+            intensity=0,
+            quality_gate="strict",
+            constraints={"max_detection_loops": 0},
+            seed=42,
+        )
+        gate = result.metrics_after.get("strict_quality_gate", {})
+        assert gate.get("passed") is True
+
+    def test_strict_gate_rolls_back_similarity_drop(self):
+        text = "Important data supports API growth."
+        result = humanize(
+            text,
+            lang="en",
+            intensity=30,
+            custom_dict={"Important": "Unrelated", "data": "noise"},
+            quality_gate="strict",
+            constraints={"min_similarity": 0.99, "max_detection_loops": 0},
+            seed=42,
+        )
+        assert result.text == text
+        assert result.metrics_after["strict_quality_gate"]["passed"] is False
+        assert any(
+            change.get("type") == "quality_gate_strict_rollback"
+            for change in result.changes
+        )
+
+
 class TestWatermarkReport:
     def test_unified_report_schema(self):
         r = watermark_report("Te\u200bst with hidden mark.", lang="en")
