@@ -90,6 +90,36 @@ class TestSegmenter:
         assert "25%" in restored
         assert "150" in restored
 
+    def test_semantic_value_protection_defaults(self):
+        """Даты, цены, версии и id защищаются по умолчанию."""
+        text = (
+            "Release v0.28.4 ships on June 1, 2026 for $49.99. "
+            "Order ORD-8421 includes SKU-THZ_2026."
+        )
+        result = self.segmenter.segment(text)
+        kinds = {segment.kind for segment in result.segments}
+        assert {"version", "date", "currency", "identifier"} <= kinds
+
+        restored = result.restore(result.text)
+        for token in ("v0.28.4", "June 1, 2026", "$49.99", "ORD-8421", "SKU-THZ_2026"):
+            assert token in restored
+
+    def test_named_entities_are_inline_safe(self):
+        """Named entities should be protected without blocking the full sentence."""
+        segmented = self.segmenter.segment(
+            "OpenAI Research Group utilizes comprehensive methodology.",
+        )
+        assert any(segment.kind == "named_entity" for segment in segmented.segments)
+        assert skip_placeholder_sentence(segmented.text) is False
+
+    def test_quoted_text_protection(self):
+        """Exact quotes are preserved verbatim."""
+        text = 'Customer said "Keep RankBot AI exactly as written" yesterday.'
+        result = self.segmenter.segment(text)
+        assert '"Keep RankBot AI exactly as written"' not in result.text
+        restored = result.restore(result.text)
+        assert '"Keep RankBot AI exactly as written"' in restored
+
     def test_multiple_elements(self):
         """Множественные элементы защищаются корректно."""
         text = (

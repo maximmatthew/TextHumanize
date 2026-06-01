@@ -68,11 +68,14 @@ def main() -> int:
         return 1
 
     changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
-    changelog_latest = _extract(
-        r"^## \[([^\]]+)\]",
-        changelog,
-        "CHANGELOG.md",
-    )
+    changelog_versions = [
+        version for version in re.findall(r"^## \[([^\]]+)\]", changelog, flags=re.MULTILINE)
+        if version.lower() != "unreleased"
+    ]
+    if not changelog_versions:
+        print("CHANGELOG.md does not contain a release entry")
+        return 1
+    changelog_latest = changelog_versions[0]
     if changelog_latest != expected:
         print(f"CHANGELOG.md latest entry mismatch: expected {expected}, got {changelog_latest}")
         return 1

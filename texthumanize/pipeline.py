@@ -1608,14 +1608,16 @@ class Pipeline:
         # резкий рост AI-скора). Слишком высокий change_ratio не вызывает
         # откат — graduated retry обработает это.
         critical_errors = [e for e in validation.errors if "ключевое слово" in e.lower()
-                          or "искусственность" in e.lower()]
+                          or "искусственность" in e.lower()
+                          or "защищенные значения" in e.lower()]
         if critical_errors:
             # Try partial rollback — remove stages from the end
             for cp_name, cp_text in reversed(checkpoints):
                 restored_cp = segmented.restore(cp_text)
                 cp_valid = validator.validate(original, restored_cp, metrics_before)
                 cp_critical = [e for e in cp_valid.errors if "ключевое слово" in e.lower()
-                              or "искусственность" in e.lower()]
+                              or "искусственность" in e.lower()
+                              or "защищенные значения" in e.lower()]
                 if not cp_critical:
                     text = restored_cp
                     all_changes.append({

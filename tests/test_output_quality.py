@@ -261,6 +261,28 @@ class TestContentPreservation:
         result = humanize(text, lang="en", intensity=50, seed=42)
         assert "info@example.com" in result.text
 
+    def test_semantic_tokens_preserved(self):
+        """Dates, prices, ids, versions, quotes and entities should survive."""
+        text = (
+            "OpenAI Research Group published TextHumanize v0.28.4 on June 1, 2026. "
+            "The Pro plan costs $49.99 for order ORD-8421 and SKU-THZ_2026. "
+            'The customer said "Keep RankBot AI exactly as written." '
+            "Docs live at https://example.com/docs and support@example.com."
+        )
+        result = humanize(text, lang="en", intensity=75, seed=42)
+        for token in (
+            "OpenAI Research Group",
+            "v0.28.4",
+            "June 1, 2026",
+            "$49.99",
+            "ORD-8421",
+            "SKU-THZ_2026",
+            '"Keep RankBot AI exactly as written."',
+            "https://example.com/docs",
+            "support@example.com",
+        ):
+            assert token in result.text
+
 
 # ── Multi-language quality tests ──────────────────────────
 

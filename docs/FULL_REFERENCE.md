@@ -525,6 +525,11 @@ result = humanize(
         "code_blocks": True,
         "urls": True,
         "emails": True,
+        "dates": True,
+        "prices": True,
+        "identifiers": True,
+        "quoted_text": True,
+        "named_entities": True,
         "brand_terms": ["MyBrand"],
     },
     constraints={       # output constraints
@@ -1123,7 +1128,12 @@ preserve = {
     "mentions": True,       # protect @mentions
     "markdown": True,       # protect markdown formatting
     "html": True,           # protect HTML tags
-    "numbers": False,       # protect numbers (default: False)
+    "numbers": True,        # protect numbers
+    "dates": True,          # protect dates: 2026-06-01, June 1, 2026
+    "prices": True,         # protect prices/currency: $49.99, 49 USD
+    "identifiers": True,    # protect versions, SKU, order ids, UUIDs
+    "quoted_text": True,    # protect exact quoted text
+    "named_entities": True, # protect multi-token names like OpenAI Research Group
     "brand_terms": [        # exact terms to protect (case-sensitive)
         "TextHumanize",
         "MyBrand",

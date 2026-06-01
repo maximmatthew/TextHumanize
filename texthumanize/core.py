@@ -156,7 +156,12 @@ def humanize(
             - mentions (bool): Защита @упоминаний. По умолчанию True.
             - markdown (bool): Защита markdown. По умолчанию True.
             - html (bool): Защита HTML-тегов. По умолчанию True.
-            - numbers (bool): Защита чисел. По умолчанию False.
+            - numbers (bool): Защита чисел. По умолчанию True.
+            - dates (bool): Защита дат. По умолчанию True.
+            - prices (bool): Защита цен/валют. По умолчанию True.
+            - identifiers (bool): Защита версий, SKU, order id, UUID. По умолчанию True.
+            - quoted_text (bool): Защита цитат. По умолчанию True.
+            - named_entities (bool): Автозащита multi-token named entities. По умолчанию True.
             - brand_terms (list[str]): Список брендовых терминов.
         constraints: Ограничения обработки:
             - max_change_ratio (float): Максимальная доля изменений (0-1).

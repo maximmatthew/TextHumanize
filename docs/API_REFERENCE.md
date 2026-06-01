@@ -53,7 +53,17 @@ result = humanize(
     lang="auto",             # auto, en, ru, uk, de, fr, es, it, pl, pt
     profile="web",           # chat, web, seo, docs, formal, academic, marketing, social, email
     intensity=60,            # 0-100
-    preserve={"code_blocks": True, "urls": True, "brand_terms": ["MyBrand"]},
+    preserve={
+        "code_blocks": True,
+        "urls": True,
+        "emails": True,
+        "dates": True,
+        "prices": True,
+        "identifiers": True,
+        "quoted_text": True,
+        "named_entities": True,
+        "brand_terms": ["MyBrand"],
+    },
     constraints={"max_change_ratio": 0.4, "keep_keywords": ["SEO"]},
     seed=42,                 # For reproducibility
     target_style="student",  # Or StylisticFingerprint or STYLE_PRESETS[name]
@@ -68,7 +78,7 @@ result = humanize(
 | `lang` | `str` | `"auto"` | Language code or `"auto"` for detection |
 | `profile` | `str` | `"web"` | Processing profile (see [Profiles](#profiles)) |
 | `intensity` | `int` | `60` | Processing intensity 0–100 |
-| `preserve` | `dict` | `{}` | Elements to protect from modification |
+| `preserve` | `dict` | `{}` | Elements to protect from modification: code, URLs, email, dates, prices, ids, quotes, named entities, brand terms |
 | `constraints` | `dict` | `{}` | Output constraints (max change ratio, keywords) |
 | `seed` | `int\|None` | `None` | Random seed for reproducibility |
 | `target_style` | `str\|StylisticFingerprint\|None` | `None` | Target style preset or fingerprint |

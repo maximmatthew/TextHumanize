@@ -72,6 +72,16 @@ class QualityValidator:
         if lost_numbers:
             result.warnings.append(f"Потеряны числа: {lost_numbers}")
 
+        # 3b. Проверка критичных смысловых токенов:
+        # даты, цены, версии и служебные идентификаторы должны сохраняться exact.
+        original_semantic = self._extract_semantic_tokens(original)
+        processed_semantic = self._extract_semantic_tokens(processed)
+        lost_semantic = original_semantic - processed_semantic
+        if lost_semantic:
+            preview = ", ".join(sorted(lost_semantic)[:8])
+            result.errors.append(f"Потеряны защищенные значения: {preview}")
+            result.should_rollback = True
+
         # 4. Проверка длины (не должна сильно измениться)
         len_ratio = len(processed) / len(original) if original else 1.0
         if len_ratio < 0.5 or len_ratio > 1.5:
@@ -147,6 +157,41 @@ class QualityValidator:
     def _extract_numbers(self, text: str) -> set[str]:
         """Извлечь числовые значения из текста."""
         return set(re.findall(r'\b\d+(?:[.,]\d+)?\b', text))
+
+    def _extract_semantic_tokens(self, text: str) -> set[str]:
+        """Extract high-value tokens that should survive exactly."""
+        month_names = (
+            "jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|"
+            "jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|"
+            "nov(?:ember)?|dec(?:ember)?|"
+            "января|февраля|марта|апреля|мая|июня|июля|августа|сентября|"
+            "октября|ноября|декабря|"
+            "січня|лютого|березня|квітня|травня|червня|липня|серпня|"
+            "вересня|жовтня|листопада|грудня"
+        )
+        patterns = [
+            rf'\b(?:\d{{4}}[-/.]\d{{1,2}}[-/.]\d{{1,2}}'
+            rf'|\d{{1,2}}[-/.]\d{{1,2}}[-/.]\d{{2,4}}'
+            rf'|\d{{1,2}}\s+(?:{month_names})(?:\s+\d{{2,4}})?'
+            rf'|(?:{month_names})\s+\d{{1,2}}(?:,?\s+\d{{2,4}})?)\b',
+            r'(?<!\w)(?:[$€£₴₽]\s?\d+(?:[.,]\d+)*(?:\.\d+)?'
+            r'|\d+(?:[.,]\d+)*(?:\.\d+)?\s?'
+            r'(?:USD|EUR|GBP|UAH|RUB|грн|руб|долл|евро))(?!\w)',
+            r'(?<![\w])v?\d+\.\d+(?:\.\d+){1,3}'
+            r'(?:[-+][0-9A-Za-z][0-9A-Za-z._-]*)?(?![\w])',
+            r'\b(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-'
+            r'[0-9a-fA-F]{4}-[0-9a-fA-F]{12}'
+            r'|(?:ORD|ORDER|INV|INVOICE|SKU|TICKET|CASE|REQ|TXN|PAY|SUB|ID)'
+            r'[-_ ]?[A-Z0-9][A-Z0-9_-]{2,}'
+            r'|[A-Z]{2,}[A-Z0-9_]*[-_]\d[A-Z0-9_-]*)\b',
+        ]
+        tokens: set[str] = set()
+        for pattern in patterns:
+            tokens.update(
+                " ".join(match.group(0).lower().split())
+                for match in re.finditer(pattern, text, flags=re.IGNORECASE)
+            )
+        return tokens
 
 
 class ValidationResult:

@@ -669,7 +669,7 @@ results = detect_ai_batch(["Text 1", "Text 2", "Text 3"], lang="en")
 | `profile` | `str` | `"web"` | Processing profile: `chat`, `web`, `seo`, `docs`, `formal`, `academic`, `marketing`, `social`, `email`, plus intent aliases `seo_article`, `landing_page`, `product_description`, `support_reply`, `legal`, `social_post` |
 | `intensity` | `int` | `50` | Aggressiveness 0–100 |
 | `seed` | `int` | `None` | PRNG seed for reproducibility |
-| `preserve` | `list[str]` | `[]` | Keywords to never modify |
+| `preserve` | `dict` | `{}` | Protect code, URLs, email, dates, prices, ids, quotes, named entities, brand terms |
 | `minimal` | `bool` | `False` | Only humanize AI-flagged sentences |
 | `max_change_ratio` | `float` | `None` | Maximum allowed proportion of change (0.0–1.0) |
 | `constraints` | `dict` | `{}` | Advanced constraints (`keep_keywords`, etc.) |
@@ -1673,7 +1673,10 @@ No. TextHumanize is a style normalization tool. It reduces AI-like patterns but 
 `chat` with intensity 60–80 gives the largest reduction (up to -53 percentage points in our benchmarks). For professional content, try `web` at 70.
 
 **Q: How do I preserve keywords (e.g., for SEO)?**
-Use `preserve=["keyword1", "keyword2"]` or the SEO profile: `profile="seo"`.
+Use `constraints={"keep_keywords": ["keyword1", "keyword2"]}` or
+`preserve={"brand_terms": ["BrandName"]}`. By default, TextHumanize also protects
+URLs, email, code, Markdown/HTML, dates, prices, versions, order ids, exact quotes,
+and multi-token named entities.
 
 **Q: Can I use this for commercial projects?**
 Yes, with a commercial license. See [License & Pricing](#-license--pricing).

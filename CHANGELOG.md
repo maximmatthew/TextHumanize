@@ -3,6 +3,14 @@
 All notable changes to this project are documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased]
+
+### Added
+- **Stronger semantic preservation** — dates, prices, versions, order ids, SKU-like identifiers, exact quotes, and multi-token named entities are now protected by default during humanization.
+
+### Changed
+- **Safer default preservation** — numeric values are protected by default and semantic placeholders are inline-safe, allowing text around protected values to still be improved.
+
 ## [0.28.4] - 2026-06-01
 
 ### Added

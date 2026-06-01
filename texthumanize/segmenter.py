@@ -15,7 +15,17 @@ PLACEHOLDER_PREFIX = "\x00THZ_"
 PLACEHOLDER_SUFFIX = "\x00"
 _PLACEHOLDER_RE = re.compile(r'\x00THZ_[A-Z_]+_\d+\x00')
 _PLACEHOLDER_KIND_RE = re.compile(r'\x00THZ_([A-Z_]+)_\d+\x00')
-_INLINE_SAFE_PLACEHOLDER_KINDS = {"HTML_TAG"}
+_INLINE_SAFE_PLACEHOLDER_KINDS = {
+    "HTML_TAG",
+    "NUMBER",
+    "DATE",
+    "CURRENCY",
+    "VERSION",
+    "IDENTIFIER",
+    "NAMED_ENTITY",
+    "BRAND_TERM",
+    "KEEP_KEYWORD",
+}
 
 # ── Placeholder-aware helpers (used by ALL pipeline stages) ───
 
@@ -47,6 +57,14 @@ def skip_placeholder_sentence(sentence: str) -> bool:
     if not kinds:
         return True
     return any(kind not in _INLINE_SAFE_PLACEHOLDER_KINDS for kind in kinds)
+
+
+def _inside_existing_placeholder(text: str, start: int, end: int) -> bool:
+    """Return True if a regex match points inside an existing placeholder."""
+    return any(
+        match.start() <= start and end <= match.end()
+        for match in _PLACEHOLDER_RE.finditer(text)
+    )
 
 
 @dataclass
@@ -93,6 +111,16 @@ class SegmentedText:
 
 
 # Регулярные выражения для защищаемых элементов
+_MONTH_NAMES = (
+    "jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|"
+    "jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|"
+    "dec(?:ember)?|"
+    "января|февраля|марта|апреля|мая|июня|июля|августа|сентября|"
+    "октября|ноября|декабря|"
+    "січня|лютого|березня|квітня|травня|червня|липня|серпня|"
+    "вересня|жовтня|листопада|грудня"
+)
+
 _PATTERNS = {
     "code_block": re.compile(
         r'```[\s\S]*?```'
@@ -131,6 +159,52 @@ _PATTERNS = {
     "markdown_heading": re.compile(r'^#{1,6}\s+', re.MULTILINE),
     "markdown_bold": re.compile(r'\*\*[^*]+?\*\*|__[^_]+?__'),
     "markdown_italic": re.compile(r'(?<!\*)\*[^*]+?\*(?!\*)|(?<!_)_[^_]+?_(?!_)'),
+    "quoted_text": re.compile(
+        r'"[^"\n]{2,240}"'
+        r'|“[^”\n]{2,240}”'
+        r'|«[^»\n]{2,240}»'
+        r'|„[^“\n]{2,240}“',
+    ),
+    "date": re.compile(
+        rf'\b(?:'
+        rf'\d{{4}}[-/.]\d{{1,2}}[-/.]\d{{1,2}}'
+        rf'|\d{{1,2}}[-/.]\d{{1,2}}[-/.]\d{{2,4}}'
+        rf'|\d{{1,2}}\s+(?:{_MONTH_NAMES})(?:\s+\d{{2,4}})?'
+        rf'|(?:{_MONTH_NAMES})\s+\d{{1,2}}(?:,?\s+\d{{2,4}})?'
+        rf')\b',
+        re.IGNORECASE,
+    ),
+    "currency": re.compile(
+        r'(?<!\w)(?:'
+        r'[$€£₴₽]\s?\d+(?:[.,]\d+)*(?:\.\d+)?'
+        r'|\d+(?:[.,]\d+)*(?:\.\d+)?\s?'
+        r'(?:USD|EUR|GBP|UAH|RUB|грн|руб|долл|евро|uah|usd|eur)'
+        r')(?!\w)',
+        re.IGNORECASE,
+    ),
+    "version": re.compile(
+        r'(?<![\w])v?\d+\.\d+(?:\.\d+){1,3}'
+        r'(?:[-+][0-9A-Za-z][0-9A-Za-z._-]*)?(?![\w])',
+        re.IGNORECASE,
+    ),
+    "identifier": re.compile(
+        r'\b(?:'
+        r'[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-'
+        r'[0-9a-fA-F]{4}-[0-9a-fA-F]{12}'
+        r'|(?:ORD|ORDER|INV|INVOICE|SKU|TICKET|CASE|REQ|TXN|PAY|SUB|ID)'
+        r'[-_ ]?[A-Z0-9][A-Z0-9_-]{2,}'
+        r'|[A-Z]{2,}[A-Z0-9_]*[-_]\d[A-Z0-9_-]*'
+        r')\b',
+    ),
+    "named_entity": re.compile(
+        r'\b(?:'
+        r'[A-ZА-ЯІЇЄҐ][A-Za-zА-Яа-яЁёІіЇїЄєҐґ0-9&.\'-]+'
+        r'(?:\s+(?:'
+        r'[A-ZА-ЯІЇЄҐ][A-Za-zА-Яа-яЁёІіЇїЄєҐґ0-9&.\'-]+'
+        r'|&|and|of|the|for|de|du|von|van'
+        r')){1,5}'
+        r')\b',
+    ),
     # HTML list items: protect <li>...</li> individually
     "html_list_item": re.compile(r'<li\b[^>]*>[\s\S]*?</li\s*>', re.IGNORECASE),
     # Leader dots (TOC, оглавления): "Глава 1 .......... 5"
@@ -154,7 +228,8 @@ class Segmenter:
         Args:
             preserve: Словарь настроек защиты.
                 code_blocks, urls, emails, hashtags, mentions,
-                markdown, html, numbers, brand_terms.
+                markdown, html, numbers, dates, prices, identifiers,
+                quoted_text, named_entities, brand_terms.
         """
         self.preserve = preserve or {
             "code_blocks": True,
@@ -164,7 +239,12 @@ class Segmenter:
             "mentions": True,
             "markdown": True,
             "html": True,
-            "numbers": False,
+            "numbers": True,
+            "dates": True,
+            "prices": True,
+            "identifiers": True,
+            "quoted_text": True,
+            "named_entities": True,
             "brand_terms": [],
         }
         self._counter = 0
@@ -213,6 +293,10 @@ class Segmenter:
         if self.preserve.get("markdown", True):
             result = self._protect(result, "markdown_link", segments)
 
+        # 6b. Exact quoted text — preserve citations/testimonials verbatim
+        if self.preserve.get("quoted_text", True):
+            result = self._protect(result, "quoted_text", segments)
+
         # 7. URL (with http/https/www prefix)
         if self.preserve.get("urls", True):
             result = self._protect(result, "url", segments)
@@ -240,19 +324,35 @@ class Segmenter:
         # 10. Leader dots (оглавления, TOC)
         result = self._protect(result, "leader_dots", segments)
 
-        # 11. Числа с единицами
-        if self.preserve.get("numbers", False):
+        # 11. Semantic values: dates, prices, versions, IDs, then generic numbers
+        if self.preserve.get("prices", True):
+            result = self._protect(result, "currency", segments)
+
+        if self.preserve.get("dates", True):
+            result = self._protect(result, "date", segments)
+
+        if self.preserve.get("identifiers", True):
+            result = self._protect(result, "version", segments)
+            result = self._protect(result, "identifier", segments)
+
+        # 12. Числа с единицами
+        if self.preserve.get("numbers", True):
             result = self._protect_numbers(result, segments)
 
-        # 11. Брендовые термины
+        # 13. Брендовые термины
         brand_terms = self.preserve.get("brand_terms", [])
         if brand_terms:
-            result = self._protect_terms(result, brand_terms, segments)
+            result = self._protect_terms(result, brand_terms, segments, kind="brand_term")
 
-        # 12. Ключевые слова для SEO
+        # 14. Ключевые слова для SEO
         keep_keywords = self.preserve.get("keep_keywords", [])
         if keep_keywords:
-            result = self._protect_terms(result, keep_keywords, segments)
+            result = self._protect_terms(result, keep_keywords, segments, kind="keep_keyword")
+
+        # 15. Auto-detected multi-token entities. Run after explicit terms so
+        # user-provided brand/keyword locks win over heuristic detection.
+        if self.preserve.get("named_entities", True):
+            result = self._protect(result, "named_entity", segments)
 
         return SegmentedText(text=result, segments=segments)
 
@@ -268,6 +368,8 @@ class Segmenter:
             return text
 
         def replacer(match: re.Match) -> str:
+            if _inside_existing_placeholder(text, match.start(), match.end()):
+                return match.group(0)
             placeholder = self._make_placeholder(kind)
             segments.append(ProtectedSegment(
                 placeholder=placeholder,
@@ -285,6 +387,8 @@ class Segmenter:
     ) -> str:
         """Защитить числа."""
         def replacer(match: re.Match) -> str:
+            if _inside_existing_placeholder(text, match.start(), match.end()):
+                return match.group(0)
             placeholder = self._make_placeholder("number")
             segments.append(ProtectedSegment(
                 placeholder=placeholder,
@@ -300,6 +404,8 @@ class Segmenter:
         text: str,
         terms: list[str],
         segments: list[ProtectedSegment],
+        *,
+        kind: str = "brand_term",
     ) -> str:
         """Защитить конкретные термины."""
         for term in terms:
@@ -308,16 +414,18 @@ class Segmenter:
             escaped = re.escape(term)
             pattern = re.compile(r'\b' + escaped + r'\b', re.IGNORECASE)
 
-            def make_replacer(t: str) -> Callable[[re.Match[str]], str]:
+            def make_replacer(source: str) -> Callable[[re.Match[str]], str]:
                 def replacer(match: re.Match) -> str:
-                    placeholder = self._make_placeholder("brand_term")
+                    if _inside_existing_placeholder(source, match.start(), match.end()):
+                        return match.group(0)
+                    placeholder = self._make_placeholder(kind)
                     segments.append(ProtectedSegment(
                         placeholder=placeholder,
                         original=match.group(0),
-                        kind="brand_term",
+                        kind=kind,
                     ))
                     return placeholder
                 return replacer
 
-            text = pattern.sub(make_replacer(term), text)
+            text = pattern.sub(make_replacer(text), text)
         return text

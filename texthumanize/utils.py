@@ -34,7 +34,12 @@ class HumanizeOptions:
         "mentions": True,
         "markdown": True,
         "html": True,
-        "numbers": False,
+        "numbers": True,
+        "dates": True,
+        "prices": True,
+        "identifiers": True,
+        "quoted_text": True,
+        "named_entities": True,
         "brand_terms": [],
     })
     constraints: dict[str, Any] = field(default_factory=lambda: {
