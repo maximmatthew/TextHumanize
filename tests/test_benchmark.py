@@ -6,6 +6,7 @@ import time
 import unittest
 
 from texthumanize import detect_ai, humanize
+from texthumanize.benchmarks import detector_benchmark
 
 
 class TestPerformance(unittest.TestCase):
@@ -195,6 +196,55 @@ class TestCLIBenchmarkIntegration(unittest.TestCase):
         self.assertIn("deterministic", data)
         self.assertTrue(data["deterministic"])
         self.assertGreater(data["avg_throughput_chars_sec"], 0)
+
+
+class TestDetectorBenchmark(unittest.TestCase):
+    """Detector benchmark schema and corpus checks."""
+
+    def test_detector_benchmark_custom_corpus(self):
+        """Custom corpus should produce per-language label metrics."""
+        corpus = [
+            {
+                "id": "human",
+                "lang": "en",
+                "label": "human",
+                "domain": "note",
+                "text": "I checked the file twice and left a note for Mark.",
+            },
+            {
+                "id": "ai",
+                "lang": "en",
+                "label": "ai",
+                "domain": "docs",
+                "text": (
+                    "Furthermore, it is important to note that this comprehensive "
+                    "implementation facilitates optimization across multiple workflows."
+                ),
+            },
+            {
+                "id": "edited",
+                "lang": "en",
+                "label": "edited_ai",
+                "domain": "marketing",
+                "text": (
+                    "The original draft was tightened by an editor, but it still keeps "
+                    "a fairly structured assistant-like rhythm and polished phrasing."
+                ),
+            },
+        ]
+        report = detector_benchmark(corpus, languages=["en"], include_details=True)
+        self.assertEqual(report["schema_version"], "1.0")
+        self.assertEqual(report["labels"], ["human", "ai", "edited_ai"])
+        self.assertEqual(report["overall"]["total"], 3)
+        self.assertIn("en", report["per_language"])
+        self.assertEqual(len(report["details"]), 3)
+
+    def test_detector_benchmark_builtin_language(self):
+        """Built-in corpus can be scoped by language."""
+        report = detector_benchmark(languages=["en"], include_details=False)
+        self.assertEqual(report["languages"], ["en"])
+        self.assertEqual(report["overall"]["total"], 3)
+        self.assertEqual(report["per_language"]["en"]["details"], [])
 
 
 if __name__ == "__main__":

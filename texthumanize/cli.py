@@ -711,6 +711,69 @@ def _handle_benchmark_plain(args: argparse.Namespace, remaining: list[str]) -> N
         print("=" * 60)
 
 
+def _handle_detector_benchmark_command(
+    args: argparse.Namespace,
+    remaining: list[str],
+) -> None:
+    """Run the offline detector benchmark corpus."""
+    from texthumanize.benchmarks import detector_benchmark
+
+    languages: list[str] | None
+    languages = None if args.lang == "auto" else [args.lang]
+    include_details = getattr(args, "verbose", False) or getattr(args, "json", False)
+
+    i = 0
+    while i < len(remaining):
+        token = remaining[i]
+        if token in ("--langs", "--languages") and i + 1 < len(remaining):
+            languages = [
+                part.strip()
+                for part in remaining[i + 1].split(",")
+                if part.strip()
+            ]
+            i += 2
+        elif token == "--details":
+            include_details = True
+            i += 1
+        else:
+            i += 1
+
+    report = detector_benchmark(
+        languages=languages,
+        include_details=include_details,
+    )
+
+    if getattr(args, "report", None):
+        with open(args.report, "w", encoding="utf-8") as f:
+            json.dump(report, f, ensure_ascii=False, indent=2)
+
+    if getattr(args, "json", False):
+        print(json.dumps(report, ensure_ascii=False, indent=2))
+        return
+
+    print("=" * 72)
+    print(f"  TextHumanize Detector Benchmark — v{__version__}")
+    print("=" * 72)
+    print(f"  Languages: {', '.join(report['languages'])}")
+    print(f"  Labels:    {', '.join(report['labels'])}")
+    print(f"  Overall:   {report['overall']['accuracy']:.1%} ({report['overall']['total']} samples)")
+    print()
+    for lang, lang_report in report["per_language"].items():
+        avgs = lang_report["avg_score_by_label"]
+        print(
+            f"  {lang}: accuracy={lang_report['accuracy']:.1%}, "
+            f"human_avg={avgs['human']:.2f}, "
+            f"edited_avg={avgs['edited_ai']:.2f}, "
+            f"ai_avg={avgs['ai']:.2f}"
+        )
+        print(
+            f"      false_positive={lang_report['human_false_positive_rate']:.1%}, "
+            f"ai_recall={lang_report['ai_recall']:.1%}, "
+            f"edited_flag={lang_report['edited_ai_flag_rate']:.1%}"
+        )
+    print("=" * 72)
+
+
 # ═══════════════════════════════════════════════════════════════
 # TRAINING
 # ═══════════════════════════════════════════════════════════════
@@ -987,6 +1050,7 @@ Examples:
   texthumanize detect input.txt --verbose
   texthumanize train --samples 1000 --epochs 30
   texthumanize benchmark --lang en
+  texthumanize detector-benchmark --langs en,ru,uk --json
   echo "Text" | texthumanize detect -
   echo "Text" | texthumanize -
         """,
@@ -996,7 +1060,7 @@ Examples:
         "input",
         help=(
             "Input file ('-' for stdin), or subcommand: audit, watermark, "
-            "explain, detect, train, benchmark"
+            "explain, detect, train, benchmark, detector-benchmark"
         ),
     )
     parser.add_argument("-o", "--output", help="Output file (default: stdout)")
@@ -1132,6 +1196,9 @@ Examples:
             _handle_benchmark_rich(args, remaining)
         else:
             _handle_benchmark_plain(args, remaining)
+        return
+    if args.input in ("detector-benchmark", "detector_benchmark"):
+        _handle_detector_benchmark_command(args, remaining)
         return
 
     # ── API server ──

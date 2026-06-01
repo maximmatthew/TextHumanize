@@ -654,6 +654,11 @@ for segment in report['segments']:
 
 # Batch detection
 results = detect_ai_batch(["Text 1", "Text 2", "Text 3"], lang="en")
+
+# Offline detector benchmark: human vs AI vs edited-AI by language
+from texthumanize import detector_benchmark
+report = detector_benchmark(languages=["en", "ru", "uk"])
+print(report["per_language"]["en"]["avg_score_by_label"])
 ```
 
 ---

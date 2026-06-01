@@ -7,6 +7,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 - **Stronger semantic preservation** — dates, prices, versions, order ids, SKU-like identifiers, exact quotes, and multi-token named entities are now protected by default during humanization.
+- **Detector benchmark corpus** — added offline `detector_benchmark()` and `texthumanize detector-benchmark` for human vs AI vs edited-AI evaluation by language.
 
 ### Changed
 - **Safer default preservation** — numeric values are protected by default and semantic placeholders are inline-safe, allowing text around protected values to still be improved.

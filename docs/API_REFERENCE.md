@@ -101,6 +101,28 @@ result = humanize(
 
 ---
 
+### `detector_benchmark(languages=None) → dict`
+
+Offline benchmark for detector distribution quality across human, AI, and
+edited-AI samples. Returns overall metrics plus per-language score averages,
+false-positive rate, AI recall, and edited-AI flag rate.
+
+```python
+from texthumanize import detector_benchmark
+
+report = detector_benchmark(languages=["en", "ru", "uk"])
+print(report["overall"])
+print(report["per_language"]["en"]["avg_score_by_label"])
+```
+
+CLI:
+
+```bash
+texthumanize detector-benchmark --langs en,ru,uk --json
+```
+
+---
+
 ### `humanize_batch(texts, **options) → list[HumanizeResult]`
 
 Process multiple texts. Each text gets a unique seed (`base_seed + index`).

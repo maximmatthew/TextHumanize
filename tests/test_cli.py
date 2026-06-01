@@ -138,6 +138,15 @@ class TestCLIDetectAI:
         assert data["schema_version"] == "text-humanize.ai_explain.v1"
         assert "highlighted_spans" in data
 
+    def test_detector_benchmark_subcommand(self, capsys):
+        run_cli('detector-benchmark', '--langs', 'en', '--json')
+        out = capsys.readouterr().out
+        data = json.loads(out)
+        assert data["schema_version"] == "1.0"
+        assert data["languages"] == ["en"]
+        assert data["labels"] == ["human", "ai", "edited_ai"]
+        assert data["overall"]["total"] == 3
+
 
 class TestCLIParaphrase:
     def test_paraphrase(self, tmp_path, capsys):
