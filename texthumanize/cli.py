@@ -172,6 +172,42 @@ def _output_text(text: str, args: argparse.Namespace) -> None:
         print(text)
 
 
+def _quality_threshold(value: str) -> float:
+    """Parse a CLI quality threshold in the 0..1 range."""
+    try:
+        threshold = float(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError(
+            "--fail-under-quality must be a number between 0 and 1"
+        ) from exc
+    if not 0.0 <= threshold <= 1.0:
+        raise argparse.ArgumentTypeError(
+            "--fail-under-quality must be between 0 and 1"
+        )
+    return threshold
+
+
+def _enforce_quality_threshold(
+    score: float,
+    threshold: float | None,
+    *,
+    metric: str = "quality_score",
+) -> None:
+    """Exit with CI-friendly status when a quality metric is below threshold."""
+    if threshold is None or score >= threshold:
+        return
+
+    msg = (
+        f"{metric} {score:.3f} is below --fail-under-quality "
+        f"{threshold:.3f}"
+    )
+    if _con:
+        _con.print(f"[th.err]{msg}[/th.err]")
+    else:
+        print(msg, file=sys.stderr)
+    sys.exit(2)
+
+
 # ═══════════════════════════════════════════════════════════════
 # RICH DISPLAY HELPERS
 # ═══════════════════════════════════════════════════════════════
@@ -597,6 +633,11 @@ def _handle_benchmark_rich(args: argparse.Namespace, remaining: list[str]) -> No
     st.add_row("Deterministic", "\u2705" if deterministic else "\u274c")
     _con.print(st)
     _con.print()
+    _enforce_quality_threshold(
+        avg_quality,
+        args.fail_under_quality,
+        metric="avg_quality_score",
+    )
 
 
 def _handle_benchmark_plain(args: argparse.Namespace, remaining: list[str]) -> None:
@@ -694,6 +735,9 @@ def _handle_benchmark_plain(args: argparse.Namespace, remaining: list[str]) -> N
         "deterministic": deterministic,
         "samples": results_data,
     }
+    if args.fail_under_quality is not None:
+        summary["fail_under_quality"] = args.fail_under_quality
+        summary["quality_gate_passed"] = avg_quality >= args.fail_under_quality
 
     if use_json:
         print(json.dumps(summary, ensure_ascii=False, indent=2))
@@ -709,6 +753,11 @@ def _handle_benchmark_plain(args: argparse.Namespace, remaining: list[str]) -> N
         det_icon = "\u2705" if deterministic else "\u274c"
         print(f"  Deterministic:  {det_icon}")
         print("=" * 60)
+    _enforce_quality_threshold(
+        avg_quality,
+        args.fail_under_quality,
+        metric="avg_quality_score",
+    )
 
 
 def _handle_detector_benchmark_command(
@@ -1149,6 +1198,15 @@ Examples:
         choices=["off", "strict"],
         default="off",
         help="Post-processing quality gate (default: off)",
+    )
+    parser.add_argument(
+        "--fail-under-quality",
+        type=_quality_threshold,
+        metavar="N",
+        help=(
+            "Exit with code 2 if humanize quality_score or benchmark "
+            "avg_quality_score is below N (0..1)"
+        ),
     )
     parser.add_argument("--health", action="store_true", help="Content health score")
     parser.add_argument("--uniqueness", action="store_true", help="Uniqueness score")
@@ -1646,6 +1704,7 @@ Examples:
             "changes": result.changes[:50],
             "metrics_before": result.metrics_before,
             "metrics_after": result.metrics_after,
+            "quality_score": round(result.quality_score, 4),
         }
         try:
             with open(args.report, "w", encoding="utf-8") as f:
@@ -1661,6 +1720,8 @@ Examples:
                 _con.print(f"[th.err]{msg}[/th.err]")
             else:
                 print(msg, file=sys.stderr)
+
+    _enforce_quality_threshold(result.quality_score, args.fail_under_quality)
 
 
 if __name__ == "__main__":

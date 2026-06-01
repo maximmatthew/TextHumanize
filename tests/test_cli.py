@@ -90,6 +90,22 @@ class TestCLIHumanize:
         out = capsys.readouterr().out
         assert len(out.strip()) > 0
 
+    def test_fail_under_quality_passes(self, tmp_path, capsys):
+        infile = tmp_path / "input.txt"
+        infile.write_text("Furthermore, it is important to utilize this method.")
+        run_cli(str(infile), '-l', 'en', '--fail-under-quality', '0')
+        out = capsys.readouterr().out
+        assert len(out.strip()) > 0
+
+    def test_fail_under_quality_exits(self, tmp_path, capsys):
+        infile = tmp_path / "input.txt"
+        infile.write_text("hello world")
+        with pytest.raises(SystemExit) as exc:
+            run_cli(str(infile), '-l', 'en', '--fail-under-quality', '0.99')
+        assert exc.value.code == 2
+        err = capsys.readouterr().err
+        assert "quality_score" in err
+
 
 class TestCLIAnalyze:
     def test_analyze_mode(self, tmp_path, capsys):
@@ -223,6 +239,17 @@ class TestCLIAudit:
         data = json.loads(out)
         assert "ai" in data
         assert "watermark" in data
+
+
+class TestCLIBenchmarkGate:
+    def test_benchmark_fail_under_quality_json(self, capsys):
+        with pytest.raises(SystemExit) as exc:
+            run_cli('benchmark', '-l', 'en', '--json', '--fail-under-quality', '1')
+        assert exc.value.code == 2
+        captured = capsys.readouterr()
+        data = json.loads(captured.out)
+        assert data["quality_gate_passed"] is False
+        assert "avg_quality_score" in captured.err
 
 
 class TestCLISpin:

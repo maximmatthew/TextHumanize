@@ -609,6 +609,7 @@ liveliness → universal → naturalization → stylistic_alignment → validati
 ```bash
 # Process text
 texthumanize input.txt -l en -p web -i 70 -o output.txt
+texthumanize input.txt -l en --fail-under-quality 0.65
 
 # From stdin
 echo "Text" | texthumanize - -l en
@@ -629,6 +630,9 @@ texthumanize template.txt --variants 5
 texthumanize article.txt --analyze
 texthumanize article.txt --readability
 texthumanize article.txt --coherence
+
+# CI quality gate
+texthumanize benchmark --json --fail-under-quality 0.60
 
 # Clean watermarks
 texthumanize suspect.txt --watermarks -o clean.txt

@@ -1180,6 +1180,7 @@ texthumanize audit input.txt -l en --json
 # With all analysis
 texthumanize input.txt -l en --analyze --explain --detect-ai
 texthumanize input.txt -l en --quality-gate strict
+texthumanize input.txt -l en --fail-under-quality 0.65
 texthumanize input.txt -l en --minimal
 
 # Paraphrasing
@@ -1207,6 +1208,7 @@ texthumanize train --samples 1000 --epochs 50 --output weights/
 
 # Run benchmarks
 texthumanize benchmark --json
+texthumanize benchmark --json --fail-under-quality 0.60
 
 # Pipe mode
 echo "Text to humanize" | texthumanize - -l en
@@ -1240,6 +1242,7 @@ texthumanize input.txt -l en --verbose --report report.json
 | `--watermarks` | Detect watermarks |
 | `--watermark-report` | Unified watermark JSON report |
 | `--quality-gate` | `off` or `strict` post-processing guard |
+| `--fail-under-quality` | Exit with code 2 if `quality_score` or benchmark average is below threshold |
 | `--minimal` / `--only-flagged` | Only humanize AI-flagged sentences |
 | `--spin` | Spin mode |
 | `--variants N` | Number of spin variants |

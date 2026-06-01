@@ -1272,6 +1272,8 @@ Options:
   --keep WORD [WORD ...]    Keywords to preserve
   --brand TERM [TERM ...]   Brand terms to protect
   --max-change RATIO        Maximum change ratio 0-1 (default: 0.4)
+  --fail-under-quality N    Exit 2 if quality_score or benchmark average is
+                            below N (0..1)
   --seed N                  Random seed for reproducibility
   --report FILE             Save JSON report to file
 
@@ -1303,6 +1305,10 @@ Other:
 ```bash
 # Analyze a file
 texthumanize article.txt --analyze -l en
+
+# Fail CI when humanize or benchmark quality is below threshold
+texthumanize article.txt -l en --fail-under-quality 0.65
+texthumanize benchmark --json --fail-under-quality 0.60
 
 # Check for AI generation
 texthumanize essay.txt --detect-ai
