@@ -1090,6 +1090,7 @@ Examples:
   texthumanize input.txt
   texthumanize input.txt -l uk -p chat -i 80
   texthumanize input.txt -o output.txt --report report.json
+  texthumanize input.txt --report report.html
   texthumanize input.txt --keep "Brand" "Term"
   texthumanize --analyze input.txt
   texthumanize audit input.txt --json
@@ -1151,7 +1152,7 @@ Examples:
         default=0.4,
         help="Max change ratio 0-1 (default: 0.4)",
     )
-    parser.add_argument("--report", help="Save JSON report to file")
+    parser.add_argument("--report", help="Save JSON/HTML report to file")
     parser.add_argument(
         "--analyze", action="store_true", help="Analysis only (no processing)"
     )
@@ -1612,6 +1613,7 @@ Examples:
     # ═══════════════════════════════════════════════════════
     # HUMANIZE (main mode)
     # ═══════════════════════════════════════════════════════
+    elapsed = 0.0
     if _HAS_RICH and _con and not use_json_flag:
         _print_banner()
         with _con.status(
@@ -1663,6 +1665,7 @@ Examples:
                 )
             )
     else:
+        t0 = time.perf_counter()
         result = humanize(
             text,
             lang=args.lang,
@@ -1678,6 +1681,7 @@ Examples:
             seed=args.seed,
             minimal=args.minimal,
         )
+        elapsed = time.perf_counter() - t0
 
         if args.output:
             try:
@@ -1695,20 +1699,18 @@ Examples:
 
     # ── Save report ──
     if args.report:
-        report_data = {
-            "lang": result.lang,
-            "profile": result.profile,
-            "intensity": result.intensity,
-            "change_ratio": round(result.change_ratio, 4),
-            "changes_count": len(result.changes),
-            "changes": result.changes[:50],
-            "metrics_before": result.metrics_before,
-            "metrics_after": result.metrics_after,
-            "quality_score": round(result.quality_score, 4),
-        }
         try:
+            from texthumanize.diff_report import explain_html, explain_json_report
+
             with open(args.report, "w", encoding="utf-8") as f:
-                json.dump(report_data, f, ensure_ascii=False, indent=2)
+                if args.report.lower().endswith((".html", ".htm")):
+                    f.write(explain_html(result, elapsed_seconds=elapsed))
+                else:
+                    report_data = explain_json_report(
+                        result,
+                        elapsed_seconds=elapsed,
+                    )
+                    json.dump(report_data, f, ensure_ascii=False, indent=2)
             msg = f"Report saved to {args.report}"
             if _con:
                 _con.print(f"  [th.ok]\u2714 {msg}[/th.ok]")

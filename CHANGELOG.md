@@ -9,6 +9,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Stronger semantic preservation** — dates, prices, versions, order ids, SKU-like identifiers, exact quotes, and multi-token named entities are now protected by default during humanization.
 - **Detector benchmark corpus** — added offline `detector_benchmark()` and `texthumanize detector-benchmark` for human vs AI vs edited-AI evaluation by language.
 - **CLI quality threshold** — added `--fail-under-quality` for CI workflows that should fail when `quality_score` or benchmark average quality is below a configured threshold.
+- **Full change reports** — `--report` now writes rich JSON by default and self-contained HTML when the path ends with `.html`, including before/after text, highlighted spans, metrics, timings, and warnings.
 
 ### Changed
 - **Safer default preservation** — numeric values are protected by default and semantic placeholders are inline-safe, allowing text around protected values to still be improved.

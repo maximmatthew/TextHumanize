@@ -1218,6 +1218,7 @@ texthumanize input.txt -l en --keep "API,cloud" --brand "TextHumanize"
 
 # Verbose mode with report
 texthumanize input.txt -l en --verbose --report report.json
+texthumanize input.txt -l en --report report.html
 ```
 
 ### CLI Flags
@@ -1251,7 +1252,7 @@ texthumanize input.txt -l en --verbose --report report.json
 | `--api` | Start REST API server |
 | `--port` | API server port (default: 8080) |
 | `--verbose` | Detailed output |
-| `--report` | Save JSON report |
+| `--report` | Save JSON report, or HTML when the path ends with `.html` |
 | `--json` | JSON output format |
 
 ---

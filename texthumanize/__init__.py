@@ -210,6 +210,7 @@ _LAZY_IMPORTS: dict[str, tuple[str, str]] = {
     # diff_report.py
     "explain_html": ("texthumanize.diff_report", "explain_html"),
     "explain_json_patch": ("texthumanize.diff_report", "explain_json_patch"),
+    "explain_json_report": ("texthumanize.diff_report", "explain_json_report"),
     "explain_side_by_side": ("texthumanize.diff_report", "explain_side_by_side"),
     # neural_paraphraser.py
     "NeuralParaphraser": ("texthumanize.neural_paraphraser", "NeuralParaphraser"),
@@ -460,6 +461,7 @@ __all__ = [
     "explain",
     "explain_html",
     "explain_json_patch",
+    "explain_json_report",
     "explain_side_by_side",
     "export_custom_dict",
     "export_markers_to_json",

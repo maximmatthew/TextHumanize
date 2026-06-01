@@ -610,6 +610,8 @@ liveliness → universal → naturalization → stylistic_alignment → validati
 # Process text
 texthumanize input.txt -l en -p web -i 70 -o output.txt
 texthumanize input.txt -l en --fail-under-quality 0.65
+texthumanize input.txt -l en --report report.json
+texthumanize input.txt -l en --report report.html
 
 # From stdin
 echo "Text" | texthumanize - -l en

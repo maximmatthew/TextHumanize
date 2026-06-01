@@ -21,6 +21,7 @@ from texthumanize import (
 from texthumanize.diff_report import (
     explain_html,
     explain_json_patch,
+    explain_json_report,
     explain_side_by_side,
 )
 from texthumanize.quality_gate import GateConfig, GateResult, check_file
@@ -148,6 +149,7 @@ class TestDiffReport:
         html = explain_html(result)
         assert "65.00" in html or "65.0" in html  # before score
         assert "20.00" in html or "20.0" in html  # after score
+        assert "Before / After" in html
 
     def test_explain_html_no_changes(self):
         result = _make_result(changes=[])
@@ -178,6 +180,24 @@ class TestDiffReport:
         op0 = data["operations"][0]
         assert op0["op"] == "replace"
         assert op0["old"] == "serves as an example"
+
+    def test_explain_json_report_full_schema(self):
+        result = _make_result(
+            metrics_after={
+                **_make_result().metrics_after,
+                "stage_timings": {"naturalization": 0.012},
+                "total_time": 0.012,
+            }
+        )
+        data = explain_json_report(result, elapsed_seconds=0.02)
+        assert data["schema_version"] == "text-humanize.change_report.v1"
+        assert data["before"]["text"] == result.original
+        assert data["after"]["text"] == result.text
+        assert data["highlighted_spans"]
+        assert data["timings"]["elapsed_seconds"] == 0.02
+        assert data["timings"]["stage_timings"]["naturalization"] == 0.012
+        assert "metrics" in data
+        assert "warnings" in data
 
     def test_explain_side_by_side(self):
         result = _make_result()

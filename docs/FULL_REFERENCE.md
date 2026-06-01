@@ -1275,7 +1275,7 @@ Options:
   --fail-under-quality N    Exit 2 if quality_score or benchmark average is
                             below N (0..1)
   --seed N                  Random seed for reproducibility
-  --report FILE             Save JSON report to file
+  --report FILE             Save JSON report, or HTML when FILE ends in .html
 
 Analysis modes:
   --analyze                 Analyze text metrics (no processing)
@@ -1309,6 +1309,10 @@ texthumanize article.txt --analyze -l en
 # Fail CI when humanize or benchmark quality is below threshold
 texthumanize article.txt -l en --fail-under-quality 0.65
 texthumanize benchmark --json --fail-under-quality 0.60
+
+# Save full before/after reports
+texthumanize article.txt -l en --report report.json
+texthumanize article.txt -l en --report report.html
 
 # Check for AI generation
 texthumanize essay.txt --detect-ai

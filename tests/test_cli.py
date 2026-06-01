@@ -301,6 +301,23 @@ class TestCLIErrors:
         assert reportfile.exists()
         data = json.loads(reportfile.read_text())
         assert "change_ratio" in data
+        assert data["schema_version"] == "text-humanize.change_report.v1"
+        assert "before" in data
+        assert "after" in data
+        assert "highlighted_spans" in data
+        assert "timings" in data
+        assert "warnings" in data
+
+    def test_html_report_save(self, tmp_path, capsys):
+        infile = tmp_path / "input.txt"
+        reportfile = tmp_path / "report.html"
+        infile.write_text("Furthermore, it is important to utilize this method.")
+        run_cli(str(infile), '--report', str(reportfile), '-l', 'en')
+        assert reportfile.exists()
+        html = reportfile.read_text()
+        assert "<!DOCTYPE html>" in html
+        assert "Before / After" in html
+        assert "Highlighted Spans" in html
 
 
 class TestCLIStdin:
