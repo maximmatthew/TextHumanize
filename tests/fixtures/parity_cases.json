@@ -1,0 +1,40 @@
+{
+  "schema_version": "text-humanize.parity.v1",
+  "description": "Shared contract fixtures for Python, PHP, and TypeScript parity tests.",
+  "cases": [
+    {
+      "id": "en_saas_web",
+      "lang": "en",
+      "profile": "web",
+      "intensity": 65,
+      "seed": 42,
+      "text": "Furthermore, Promopilot utilizes comprehensive automation to analyze organic traffic before publication. Moreover, TextHumanize provides a practical framework for improving readability while preserving product terminology. Consequently, the content team can review risks, update weak passages, and publish clearer pages.",
+      "preserve": {
+        "brand_terms": ["Promopilot", "TextHumanize"],
+        "keep_keywords": ["organic traffic"]
+      },
+      "expected": {
+        "lang": "en",
+        "min_words": 30,
+        "min_sentences": 3
+      }
+    },
+    {
+      "id": "ru_product_web",
+      "lang": "ru",
+      "profile": "web",
+      "intensity": 60,
+      "seed": 17,
+      "text": "Promopilot осуществляет проверку текста перед публикацией. Данный процесс помогает редактору увидеть риск ИИ-паттернов и водяных знаков. TextHumanize должен улучшать читаемость, но при этом сохранять важные термины продукта.",
+      "preserve": {
+        "brand_terms": ["Promopilot", "TextHumanize"],
+        "keep_keywords": ["ИИ-паттернов"]
+      },
+      "expected": {
+        "lang": "ru",
+        "min_words": 20,
+        "min_sentences": 3
+      }
+    }
+  ]
+}
