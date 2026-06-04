@@ -36,6 +36,24 @@ class TestNaturalizerReplaceAiWords:
         result = n._replace_ai_words(text, 1.0)
         assert isinstance(result, str)
 
+    def test_collocation_guard_blocks_unfit_replacement(self):
+        """Strong original collocations are not broken by shorter synonyms."""
+        n = TextNaturalizer(lang="en", intensity=100, seed=0)
+        n._replacements = {"heavy": ["large"]}
+        text = "The heavy rain arrived after noon and slowed the release."
+        result = n._replace_ai_words(text, 1.0)
+        assert result == text
+        assert n.changes == []
+
+    def test_collocation_guard_uses_supported_alternative(self):
+        """A supported candidate can replace an AI-like word safely."""
+        n = TextNaturalizer(lang="en", intensity=100, seed=0)
+        n._replacements = {"significant": ["big", "major"]}
+        text = "The significant role of QA is visible in this release."
+        result = n._replace_ai_words(text, 1.0)
+        assert "major role" in result
+        assert "significant role" not in result
+
     def test_no_replacements_dict(self):
         """Нет словаря замен → возврат без изменений."""
         n = TextNaturalizer(lang="xx", intensity=100, seed=42)

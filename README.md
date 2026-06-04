@@ -416,7 +416,7 @@ AI score: 75% → 17%  (reduction: 58 percentage points)
 | | `SyntaxRewriter` — 8+ sentence transforms | ✅ | — | — |
 | | `WordLanguageModel` — perplexity (14 langs) | ✅ | — | — |
 | | `NeuralPerplexity` — LSTM char-level LM | ✅ | — | — |
-| | `CollocEngine` — PMI collocation scoring | ✅ | — | — |
+| | `CollocEngine` — PMI scoring + replacement guard | ✅ | — | — |
 | | `MorphologyEngine` — 4 languages | ✅ | — | — |
 | | `WordVec` — lightweight word vectors | ✅ | — | — |
 | **Tone** | `analyze_tone()` — formality analysis | ✅ | — | ✅ |
@@ -1155,10 +1155,11 @@ seg = CJKSegmenter()
 words = seg.segment("自然言語処理は面白い", lang="ja")
 
 # Collocation scoring
-from texthumanize.collocation_engine import CollocEngine
+from texthumanize.collocation_engine import CollocEngine, replacement_is_natural
 engine = CollocEngine("en")
-score = engine.collocation_score("make", "decision")
-best = engine.best_synonym_in_context("big", "a ___ mistake", ["large", "huge", "great"])
+score = engine.pmi("heavy", "rain")
+best = engine.best_synonym("important", ["crucial", "key"], ["decision"])
+safe = replacement_is_natural("heavy", "large", ["rain"], lang="en")  # False
 
 # Perplexity
 from texthumanize.word_lm import WordLanguageModel
@@ -1618,14 +1619,14 @@ cd php/ && composer install && vendor/bin/phpunit
 
 | Platform | Tests | Status |
 |:---------|------:|:------:|
-| **Python** (pytest, 3.9–3.13) | 2,105 | ✅ All passing |
+| **Python** (pytest, 3.9–3.13) | 2,109 | ✅ All passing |
 | **PHP** (PHPUnit, 8.1–8.3) | 223 | ✅ All passing |
 | **TypeScript** (Jest) | 28 | ✅ All passing |
-| **Total** | **2,356** | ✅ |
+| **Total** | **2,360** | ✅ |
 
 ```bash
 # Python
-pytest -q                          # 2,105 passed
+pytest -q                          # 2,109 passed
 pytest --cov=texthumanize          # Coverage report
 ruff check texthumanize/           # Lint
 mypy texthumanize/                 # Type check
@@ -1641,6 +1642,10 @@ cd js && npm test                  # 28 tests
 
 **Core-language regressions:** EN/RU/UK fixture packs verify protected tokens,
 cross-language leakage, and language-aware cleanup of over-humanized output.
+
+**Collocation guard:** word-level replacements now keep strong local
+collocations intact, so natural phrases such as "heavy rain" are not
+weakened by context-free shorter synonyms.
 
 ---
 

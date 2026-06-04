@@ -501,6 +501,21 @@ class TestCollocEngine(unittest.TestCase):
         )
         self.assertIn(best, ["crucial", "key", "significant"])
 
+    def test_replacement_fit_blocks_broken_collocation(self):
+        from texthumanize.collocation_engine import CollocEngine
+        eng = CollocEngine(lang="en")
+        fit = eng.replacement_fit("heavy", "large", ["rain"])
+        self.assertFalse(fit["safe"])
+        self.assertEqual(fit["reason"], "candidate_breaks_collocation")
+        self.assertGreater(fit["original_score"], fit["candidate_score"])
+
+    def test_replacement_fit_allows_supported_candidate(self):
+        from texthumanize.collocation_engine import CollocEngine
+        eng = CollocEngine(lang="en")
+        fit = eng.replacement_fit("significant", "major", ["role"])
+        self.assertTrue(fit["safe"])
+        self.assertGreaterEqual(fit["candidate_score"], fit["threshold"])
+
     def test_rank_synonyms(self):
         from texthumanize.collocation_engine import CollocEngine
         eng = CollocEngine(lang="en")
@@ -530,6 +545,7 @@ class TestCollocEngine(unittest.TestCase):
         from texthumanize.collocation_engine import (
             best_synonym_in_context,
             collocation_score,
+            replacement_is_natural,
         )
         s = collocation_score("heavy", "rain", lang="en")
         self.assertGreater(s, 0)
@@ -537,6 +553,9 @@ class TestCollocEngine(unittest.TestCase):
             "important", ["crucial", "key"], ["decision"],
         )
         self.assertIsInstance(best, str)
+        self.assertFalse(
+            replacement_is_natural("heavy", "large", ["rain"], lang="en")
+        )
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -750,6 +769,7 @@ class TestV015Integration(unittest.TestCase):
             "FingerprintRandomizer", "BenchmarkSuite",
             "humanize_ai", "word_perplexity", "word_naturalness",
             "collocation_score", "best_synonym_in_context",
+            "replacement_is_natural",
             "detect_ai_statistical", "segment_cjk",
             "is_cjk_text", "detect_cjk_lang",
             "diversify_text", "quick_benchmark",

@@ -196,6 +196,7 @@ _LAZY_IMPORTS: dict[str, tuple[str, str]] = {
     "CollocEngine": ("texthumanize.collocation_engine", "CollocEngine"),
     "collocation_score": ("texthumanize.collocation_engine", "collocation_score"),
     "best_synonym_in_context": ("texthumanize.collocation_engine", "best_synonym_in_context"),
+    "replacement_is_natural": ("texthumanize.collocation_engine", "replacement_is_natural"),
     # fingerprint_randomizer.py
     "FingerprintRandomizer": ("texthumanize.fingerprint_randomizer", "FingerprintRandomizer"),
     "diversify_text": ("texthumanize.fingerprint_randomizer", "diversify_text"),
@@ -488,6 +489,7 @@ __all__ = [
     "paraphrase",
     "perplexity_score",
     "quick_benchmark",
+    "replacement_is_natural",
     "run_benchmark",
     "run_cjk_benchmark",
     "sculpt_perplexity",

@@ -22,6 +22,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Changed
 - **Safer default preservation** — numeric values are protected by default and semantic placeholders are inline-safe, allowing text around protected values to still be improved.
 - **Anti-overhumanize final guard** — the pipeline now trims stacked conversational fillers, repeated discourse markers, and excessive expressive punctuation introduced by late humanization passes.
+- **Collocation-safe word replacement** — word-level naturalization now rejects candidates that would break a strong local collocation and falls back to a better supported synonym when available.
 - **Responsible detector positioning** — clarified that TextHumanize improves style, readability, and built-in AI-like risk signals but does not guarantee passing external AI detectors.
 
 ## [0.28.4] - 2026-06-01

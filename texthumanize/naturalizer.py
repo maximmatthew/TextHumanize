@@ -1349,12 +1349,12 @@ class TextNaturalizer:
                 continue
 
             # Collocation-aware synonym selection:
-            # extract context words around the match for scoring
-            # Use wider context window (200 chars) for better collocation matching
+            # extract nearest context words on both sides of the match.
             ctx_start = max(0, match.start() - 200)
             ctx_end = min(len(text), match.end() + 200)
-            ctx_text = text[ctx_start:match.start()] + text[match.end():ctx_end]
-            ctx_words = re.findall(r'[\w]+', ctx_text.lower())
+            left_ctx = re.findall(r'[\w]+', text[ctx_start:match.start()].lower())
+            right_ctx = re.findall(r'[\w]+', text[match.end():ctx_end].lower())
+            ctx_words = left_ctx[-8:] + right_ctx[:8]
 
             if len(replacements) > 1 and ctx_words:
                 replacement = colloc.best_synonym(
@@ -1369,6 +1369,27 @@ class TextNaturalizer:
                 replacement=replacement,
             ):
                 continue
+
+            # Collocation guard: if the original word has a strong known
+            # collocation in this context and the candidate breaks it, either
+            # find a better candidate or skip the replacement.
+            if ctx_words:
+                fit = colloc.replacement_fit(word, replacement, ctx_words)
+                if not fit["safe"] and len(replacements) > 1:
+                    for candidate, _score in colloc.rank_synonyms(
+                        replacements, ctx_words,
+                    ):
+                        if candidate == replacement:
+                            continue
+                        candidate_fit = colloc.replacement_fit(
+                            word, candidate, ctx_words,
+                        )
+                        if candidate_fit["safe"]:
+                            replacement = candidate
+                            fit = candidate_fit
+                            break
+                if not fit["safe"]:
+                    continue
 
             original = match.group(0)
 

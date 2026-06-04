@@ -44,6 +44,17 @@ _TOK_RE = re.compile(r"[\w'']+", re.UNICODE)
 def _tokenize(text: str) -> list[str]:
     return [w.lower() for w in _TOK_RE.findall(text)]
 
+def _normalise_context(context: list[str] | str, *, window: int) -> list[str]:
+    """Return compact, lower-cased context tokens for collocation scoring."""
+    if isinstance(context, str):
+        words = _tokenize(context)
+    else:
+        words = []
+        for item in context:
+            words.extend(_tokenize(item))
+
+    return [w for w in words if len(w) > 2][:window * 2]
+
 class CollocEngine:
     """Collocation-aware scoring engine.
 
@@ -88,13 +99,78 @@ class CollocEngine:
 
         Sums PMI with each context word. Higher = better fit.
         """
-        c = candidate.lower()
+        candidate_tokens = _tokenize(candidate) or [candidate.lower()]
         total = 0.0
-        for ctx_word in context:
-            w = ctx_word.lower()
-            total += self.pmi(c, w)
-            total += self.pmi(w, c)
+        for c in candidate_tokens:
+            for ctx_word in context:
+                w = ctx_word.lower()
+                total += self.pmi(c, w)
+                total += self.pmi(w, c)
         return total
+
+    def replacement_fit(
+        self,
+        original: str,
+        candidate: str,
+        context: list[str] | str,
+        *,
+        window: int = 5,
+        min_original_score: float = 3.0,
+        min_candidate_ratio: float = 0.45,
+    ) -> dict[str, Any]:
+        """Check whether replacing a word preserves local collocation quality.
+
+        The guard is conservative: if there is no collocation evidence, the
+        replacement is allowed. It blocks only when the original has a strong
+        known collocation with nearby words and the candidate has little or no
+        matching support.
+        """
+        ctx = _normalise_context(context, window=window)
+        original_norm = original.lower()
+        candidate_norm = candidate.lower()
+
+        if not ctx or original_norm == candidate_norm:
+            return {
+                "safe": True,
+                "reason": "no_context",
+                "original_score": 0.0,
+                "candidate_score": 0.0,
+                "threshold": 0.0,
+            }
+
+        original_score = self.context_score(original_norm, ctx)
+        candidate_score = self.context_score(candidate_norm, ctx)
+        threshold = max(0.1, original_score * min_candidate_ratio)
+        unsafe = (
+            original_score >= min_original_score
+            and candidate_score < threshold
+        )
+
+        return {
+            "safe": not unsafe,
+            "reason": (
+                "candidate_breaks_collocation"
+                if unsafe else "candidate_supported_or_no_strong_original"
+            ),
+            "original_score": round(original_score, 4),
+            "candidate_score": round(candidate_score, 4),
+            "threshold": round(threshold, 4),
+        }
+
+    def is_replacement_natural(
+        self,
+        original: str,
+        candidate: str,
+        context: list[str] | str,
+        *,
+        window: int = 5,
+    ) -> bool:
+        """Boolean shortcut for :meth:`replacement_fit`."""
+        return bool(
+            self.replacement_fit(
+                original, candidate, context, window=window,
+            )["safe"]
+        )
 
     def best_synonym(
         self,
@@ -221,4 +297,15 @@ def best_synonym_in_context(
     """Pick best synonym given surrounding words."""
     return CollocEngine(lang=lang).best_synonym(
         original, candidates, context,
+    )
+
+def replacement_is_natural(
+    original: str,
+    candidate: str,
+    context: list[str] | str,
+    lang: str = "en",
+) -> bool:
+    """Return whether a replacement preserves local collocation fit."""
+    return CollocEngine(lang=lang).is_replacement_natural(
+        original, candidate, context,
     )
