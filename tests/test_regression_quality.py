@@ -8,11 +8,15 @@
 6. Key terms / proper nouns preserved
 """
 
+import json
 import re
+from pathlib import Path
 
 import pytest
 
 from texthumanize import analyze, humanize
+from texthumanize.pipeline import Pipeline
+from texthumanize.utils import HumanizeOptions, HumanizeResult
 
 # ═══════════════════════════════════════════════════════════════
 #  Test data
@@ -91,6 +95,91 @@ IT_TEXT = (
     "L'intelligenza artificiale è una delle tecnologie più promettenti. "
     "Sebbene lo sviluppo sia complesso, offre vantaggi significativi."
 )
+
+
+def _load_core_language_regressions():
+    path = Path(__file__).parent / "fixtures" / "core_language_regressions.json"
+    with path.open(encoding="utf-8") as fh:
+        return json.load(fh)
+
+
+CORE_LANGUAGE_REGRESSIONS = _load_core_language_regressions()
+
+
+# ═══════════════════════════════════════════════════════════════
+#  Core language fixture pack
+# ═══════════════════════════════════════════════════════════════
+
+class TestCoreLanguageRegressionPack:
+    """Fixture-driven regression pack for EN/RU/UK output safety."""
+
+    @pytest.mark.parametrize(
+        "case",
+        CORE_LANGUAGE_REGRESSIONS["public_humanize"],
+        ids=[case["id"] for case in CORE_LANGUAGE_REGRESSIONS["public_humanize"]],
+    )
+    def test_public_humanize_preserves_core_language_tokens(self, case):
+        result = humanize(
+            case["text"],
+            lang=case["lang"],
+            profile="web",
+            intensity=60,
+            seed=42,
+        )
+
+        for token in case["required_tokens"]:
+            assert token in result.text, (
+                f"{case['id']}: required token lost: {token!r}\n{result.text}"
+            )
+        for forbidden in case["forbidden_substrings"]:
+            assert forbidden.lower() not in result.text.lower(), (
+                f"{case['id']}: forbidden artifact found: {forbidden!r}\n"
+                f"{result.text}"
+            )
+        assert "anti_overhumanize" in result.metrics_after
+        assert result.change_ratio <= 0.80, (
+            f"{case['id']}: excessive rewrite: {result.change_ratio:.2%}"
+        )
+
+    @pytest.mark.parametrize(
+        "case",
+        CORE_LANGUAGE_REGRESSIONS["anti_overhumanize"],
+        ids=[case["id"] for case in CORE_LANGUAGE_REGRESSIONS["anti_overhumanize"]],
+    )
+    def test_anti_overhumanize_guard_is_language_aware(self, case):
+        pipeline = Pipeline(
+            HumanizeOptions(
+                lang=case["lang"],
+                profile="web",
+                intensity=80,
+                seed=42,
+            )
+        )
+        raw = HumanizeResult(
+            original=case["original"],
+            text=case["overhumanized"],
+            lang=case["lang"],
+            profile="web",
+            intensity=80,
+            changes=[],
+            metrics_before={},
+            metrics_after={},
+        )
+
+        guarded = pipeline._apply_anti_overhumanize_guard(
+            case["original"],
+            raw,
+            case["lang"],
+        )
+
+        for forbidden in case["forbidden_substrings"]:
+            assert forbidden.lower() not in guarded.text.lower(), (
+                f"{case['id']}: forbidden artifact survived: {forbidden!r}\n"
+                f"{guarded.text}"
+            )
+        assert guarded.text.count("!") <= case["max_exclamations"], guarded.text
+        assert guarded.text.count("?") <= case["max_questions"], guarded.text
+        assert guarded.metrics_after["anti_overhumanize"]["triggered"] is True
 
 
 # ═══════════════════════════════════════════════════════════════

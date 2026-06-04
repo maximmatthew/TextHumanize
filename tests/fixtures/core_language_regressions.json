@@ -1,0 +1,102 @@
+{
+  "public_humanize": [
+    {
+      "id": "en_release_notes_preservation",
+      "lang": "en",
+      "text": "TextHumanize v0.28.4 improves release quality for technical teams. The API documentation is available at https://example.com/docs, and support requests use ticket THZ-2026-481.",
+      "required_tokens": [
+        "TextHumanize",
+        "v0.28.4",
+        "https://example.com/docs",
+        "THZ-2026-481"
+      ],
+      "forbidden_substrings": [
+        "!!",
+        "??",
+        "Actually, actually",
+        "Well, well"
+      ]
+    },
+    {
+      "id": "ru_release_notes_preservation",
+      "lang": "ru",
+      "text": "TextHumanize v0.28.4 улучшает качество релизов для технических команд. Документация API доступна на https://example.com/docs, а обращения поддержки используют тикет THZ-2026-482.",
+      "required_tokens": [
+        "TextHumanize",
+        "v0.28.4",
+        "https://example.com/docs",
+        "THZ-2026-482"
+      ],
+      "forbidden_substrings": [
+        "!!",
+        "??",
+        "на самом деле, на самом деле",
+        "кстати, кстати",
+        "however"
+      ]
+    },
+    {
+      "id": "uk_release_notes_preservation",
+      "lang": "uk",
+      "text": "TextHumanize v0.28.4 покращує якість релізів для технічних команд. Документація API доступна на https://example.com/docs, а звернення підтримки використовують тикет THZ-2026-483.",
+      "required_tokens": [
+        "TextHumanize",
+        "v0.28.4",
+        "https://example.com/docs",
+        "THZ-2026-483"
+      ],
+      "forbidden_substrings": [
+        "!!",
+        "??",
+        "насправді, насправді",
+        "до речі, до речі",
+        "however",
+        "однако"
+      ]
+    }
+  ],
+  "anti_overhumanize": [
+    {
+      "id": "en_overhumanized_fillers",
+      "lang": "en",
+      "original": "The release improves clarity. Teams can review changes. Governance remains simple. Updates are visible.",
+      "overhumanized": "Actually, the release improves clarity!! Well, teams can review changes! Honestly, governance remains simple! Actually, actually, updates are visible???",
+      "max_exclamations": 1,
+      "max_questions": 1,
+      "forbidden_substrings": [
+        "!!",
+        "??",
+        "Actually, actually",
+        "Well, well"
+      ]
+    },
+    {
+      "id": "ru_overhumanized_fillers",
+      "lang": "ru",
+      "original": "Релиз улучшает ясность. Команды могут проверять изменения. Управление остается простым. Обновления видны.",
+      "overhumanized": "На самом деле, релиз улучшает ясность!! Кстати, команды могут проверять изменения! Собственно, управление остается простым! На самом деле, на самом деле, обновления видны???",
+      "max_exclamations": 1,
+      "max_questions": 1,
+      "forbidden_substrings": [
+        "!!",
+        "??",
+        "на самом деле, на самом деле",
+        "кстати, кстати"
+      ]
+    },
+    {
+      "id": "uk_overhumanized_fillers",
+      "lang": "uk",
+      "original": "Реліз покращує ясність. Команди можуть перевіряти зміни. Керування залишається простим. Оновлення видимі.",
+      "overhumanized": "Насправді, реліз покращує ясність!! До речі, команди можуть перевіряти зміни! Власне, керування залишається простим! Насправді, насправді, оновлення видимі???",
+      "max_exclamations": 1,
+      "max_questions": 1,
+      "forbidden_substrings": [
+        "!!",
+        "??",
+        "насправді, насправді",
+        "до речі, до речі"
+      ]
+    }
+  ]
+}

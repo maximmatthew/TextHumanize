@@ -1639,6 +1639,9 @@ cd js && npm test                  # 28 tests
 
 **CI/CD:** Every push triggers Python 3.9–3.13 + PHP 8.1–8.3 matrix, ruff lint, mypy type check, pytest with coverage ≥ 70%.
 
+**Core-language regressions:** EN/RU/UK fixture packs verify protected tokens,
+cross-language leakage, and language-aware cleanup of over-humanized output.
+
 ---
 
 ## 🛡️ Security & Limits
