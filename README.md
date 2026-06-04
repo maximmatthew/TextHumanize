@@ -1619,14 +1619,14 @@ cd php/ && composer install && vendor/bin/phpunit
 
 | Platform | Tests | Status |
 |:---------|------:|:------:|
-| **Python** (pytest, 3.9–3.13) | 2,109 | ✅ All passing |
+| **Python** (pytest, 3.9–3.13) | 2,137 | ✅ All passing |
 | **PHP** (PHPUnit, 8.1–8.3) | 223 | ✅ All passing |
 | **TypeScript** (Jest) | 28 | ✅ All passing |
-| **Total** | **2,360** | ✅ |
+| **Total** | **2,388** | ✅ |
 
 ```bash
 # Python
-pytest -q                          # 2,109 passed
+pytest -q                          # 2,137 passed
 pytest --cov=texthumanize          # Coverage report
 ruff check texthumanize/           # Lint
 mypy texthumanize/                 # Type check
