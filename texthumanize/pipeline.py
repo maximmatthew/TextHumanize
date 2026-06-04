@@ -214,6 +214,38 @@ class Pipeline:
                 })
         return text, changes
 
+    def _apply_domain_dictionaries(
+        self,
+        text: str,
+        preserve_config: dict,
+    ) -> list[str]:
+        """Add detected or explicit domain terms to protected keywords."""
+        if preserve_config.get("domain_terms", True) is False:
+            return []
+
+        explicit_domains = (
+            preserve_config.get("domains")
+            or self.options.constraints.get("domains")
+            or self.options.constraints.get("domain")
+        )
+        try:
+            from texthumanize.domain_dictionaries import domain_terms_for_text
+            domain_terms = domain_terms_for_text(
+                text,
+                domains=explicit_domains,
+            )
+        except Exception as exc:
+            logger.warning("Could not apply domain dictionaries: %s", exc)
+            return []
+
+        if not domain_terms:
+            return []
+
+        existing = list(preserve_config.get("keep_keywords") or [])
+        merged = list(dict.fromkeys([*existing, *domain_terms]))
+        preserve_config["keep_keywords"] = merged
+        return domain_terms
+
     # Maximum allowed time for a single pipeline run (seconds).
     # Can be overridden via TEXTHUMANIZE_TIMEOUT env var (useful for CI with coverage).
     PIPELINE_TIMEOUT: float = float(os.environ.get("TEXTHUMANIZE_TIMEOUT", "30"))
@@ -1385,8 +1417,22 @@ class Pipeline:
         # Добавляем keep_keywords в protect
         keep_kw = self.options.constraints.get("keep_keywords", [])
         if keep_kw:
-            preserve_config.setdefault("keep_keywords", [])
-            preserve_config["keep_keywords"] = keep_kw
+            existing = list(preserve_config.get("keep_keywords") or [])
+            preserve_config["keep_keywords"] = list(
+                dict.fromkeys([*existing, *keep_kw])
+            )
+        domain_terms = self._apply_domain_dictionaries(text, preserve_config)
+        if domain_terms:
+            preview = ", ".join(domain_terms[:8])
+            if len(domain_terms) > 8:
+                preview += ", ..."
+            all_changes.append({
+                "type": "domain_dictionary",
+                "description": (
+                    f"domain_dictionary: protected {len(domain_terms)} "
+                    f"domain terms ({preview})"
+                ),
+            })
 
         _t0 = time.perf_counter()
         segmenter = Segmenter(preserve=preserve_config)

@@ -408,7 +408,8 @@ class Segmenter:
         kind: str = "brand_term",
     ) -> str:
         """Защитить конкретные термины."""
-        for term in terms:
+        unique_terms = dict.fromkeys(term for term in terms if term)
+        for term in sorted(unique_terms, key=len, reverse=True):
             if not term:
                 continue
             escaped = re.escape(term)

@@ -285,6 +285,12 @@ _LAZY_IMPORTS: dict[str, tuple[str, str]] = {
     # ── Grammar Guard ──
     "GrammarGuard": ("texthumanize.grammar_guard", "GrammarGuard"),
     "GuardResult": ("texthumanize.grammar_guard", "GuardResult"),
+    # domain_dictionaries.py
+    "detect_domains": ("texthumanize.domain_dictionaries", "detect_domains"),
+    "domain_terms_for_text": ("texthumanize.domain_dictionaries", "domain_terms_for_text"),
+    "get_domain_terms": ("texthumanize.domain_dictionaries", "get_domain_terms"),
+    "list_domains": ("texthumanize.domain_dictionaries", "list_domains"),
+    "normalize_domain": ("texthumanize.domain_dictionaries", "normalize_domain"),
 }
 
 
@@ -520,4 +526,10 @@ __all__ = [
     # Grammar Guard
     "GrammarGuard",
     "GuardResult",
+    # Domain dictionaries
+    "detect_domains",
+    "domain_terms_for_text",
+    "get_domain_terms",
+    "list_domains",
+    "normalize_domain",
 ]

@@ -40,6 +40,8 @@ class HumanizeOptions:
         "identifiers": True,
         "quoted_text": True,
         "named_entities": True,
+        "domain_terms": True,
+        "domains": [],
         "brand_terms": [],
     })
     constraints: dict[str, Any] = field(default_factory=lambda: {

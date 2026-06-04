@@ -18,6 +18,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Private offline workflow example** — added a runnable local audit -> safe cleanup -> strict/minimal humanize -> audit example with network blocking and preservation checks.
 - **Good first issue guide** — added scoped starter tasks for language packs, AI markers, fixtures, watermark samples, documentation examples, and bad-output regression tests.
 - **Core-language regression fixtures** — added fixture-driven EN/RU/UK regression cases for protected tokens, cross-language leakage, and language-aware anti-overhumanize cleanup.
+- **Domain dictionaries** — added curated SaaS, ecommerce, fintech, legal, education, real estate, and healthcare term packs with auto-detection and explicit `preserve={"domains": [...]}` protection.
 
 ### Changed
 - **Safer default preservation** — numeric values are protected by default and semantic placeholders are inline-safe, allowing text around protected values to still be improved.

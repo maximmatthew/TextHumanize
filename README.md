@@ -439,6 +439,7 @@ AI score: 75% → 17%  (reduction: 58 percentage points)
 | | Auto-Tuner (feedback loop) | ✅ | — | — |
 | | AI backend (OpenAI/Ollama/OSS) | ✅ | — | — |
 | | Custom dictionary overlays | ✅ | — | — |
+| | Domain dictionaries (SaaS/ecommerce/etc.) | ✅ | — | — |
 | | Dictionary trainer (corpus) | ✅ | — | — |
 | | Neural network training loop | ✅ | — | — |
 | | Dashboard (HTML reports) | ✅ | — | — |
@@ -1183,6 +1184,12 @@ print(f"Health: {report.score}/100")
 # Custom dictionary overlay
 from texthumanize.dictionaries import load_dict, update_dict
 update_dict("en", {"bureaucratic": {"utilize": "use", "facilitate": "help"}})
+
+# Domain dictionaries
+from texthumanize import domain_terms_for_text, humanize
+sample = "ARR and churn rate improved after onboarding."
+terms = domain_terms_for_text(sample, domains="saas")
+result = humanize(sample, lang="en", preserve={"domains": ["saas"]})
 ```
 
 ---
@@ -1619,14 +1626,14 @@ cd php/ && composer install && vendor/bin/phpunit
 
 | Platform | Tests | Status |
 |:---------|------:|:------:|
-| **Python** (pytest, 3.9–3.13) | 2,137 | ✅ All passing |
+| **Python** (pytest, 3.9–3.13) | 2,144 | ✅ All passing |
 | **PHP** (PHPUnit, 8.1–8.3) | 223 | ✅ All passing |
 | **TypeScript** (Jest) | 28 | ✅ All passing |
-| **Total** | **2,388** | ✅ |
+| **Total** | **2,395** | ✅ |
 
 ```bash
 # Python
-pytest -q                          # 2,137 passed
+pytest -q                          # 2,144 passed
 pytest --cov=texthumanize          # Coverage report
 ruff check texthumanize/           # Lint
 mypy texthumanize/                 # Type check
@@ -1646,6 +1653,10 @@ cross-language leakage, and language-aware cleanup of over-humanized output.
 **Collocation guard:** word-level replacements now keep strong local
 collocations intact, so natural phrases such as "heavy rain" are not
 weakened by context-free shorter synonyms.
+
+**Domain dictionaries:** SaaS, ecommerce, fintech, legal, education, real
+estate, and healthcare terms are auto-detected or explicitly protected via
+`preserve={"domains": [...]}`.
 
 ---
 
