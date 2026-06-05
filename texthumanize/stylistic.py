@@ -324,7 +324,7 @@ class StylometricAnonymizer:
             ``AnonymizeResult`` с трансформированным текстом, сходствами
             до/после и списком изменений.
         """
-        target_name = "custom"
+        target_name: str | None = "custom"
         if isinstance(target, str):
             target, target_name = resolve_style_target(target)
         elif isinstance(target, StylisticFingerprint):
@@ -358,7 +358,7 @@ class StylometricAnonymizer:
         return AnonymizeResult(
             text=result,
             original=text,
-            target_preset=target_name,
+            target_preset=target_name or "custom",
             similarity_before=round(source_sim, 4),
             similarity_after=round(result_sim, 4),
             changes=changes,
