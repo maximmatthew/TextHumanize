@@ -55,3 +55,27 @@ result = humanize(text, lang="en", profile="academic", intensity=25)
 result = humanize(text, lang="en", target_style="copywriter")
 result = humanize(text, lang="en", target_style="редактор")
 ```
+
+## ASH Corpus Targets
+
+ASH signature transfer can now target corpus-level distributions, not only a
+language average. These targets tune sentence length, punctuation, connector
+variety, hedge words, and colloquial turns.
+
+```python
+from texthumanize import ASHEngine, list_corpus_profiles
+
+print(list_corpus_profiles().keys())
+
+ash = ASHEngine(lang="en", pipeline_profile="support")
+result = ash.humanize(text, preset="balanced")
+
+# Or keep the base pipeline profile and override only ASH's target signature.
+result = ASHEngine(lang="en", corpus_profile="academic").humanize(text)
+```
+
+Supported corpus targets include `web`, `seo`, `marketing`, `support`,
+`academic`, `formal`, `docs`, `social`, `chat`, `editorial`, `founder`,
+`expert`, and `student`. Aliases such as `support_reply`, `social_post`,
+`редактор`, `основатель`, `эксперт`, and `студент` resolve to canonical
+targets.

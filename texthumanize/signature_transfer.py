@@ -32,6 +32,7 @@ from typing import Any
 from texthumanize._human_profiles import (
     get_human_profile,
     metric_gaps,
+    normalize_corpus_profile,
     signature_distance,
 )
 from texthumanize.sentence_split import split_sentences
@@ -95,12 +96,14 @@ class SignatureTransfer:
         self,
         lang: str = "en",
         seed: int | None = None,
+        corpus_profile: str | None = None,
     ) -> None:
         self.lang = lang
         self.seed = seed
+        self.corpus_profile = normalize_corpus_profile(corpus_profile)
         self._rng = random.Random(seed)
         self._lm = WordLanguageModel(lang)
-        self._profile = get_human_profile(lang)
+        self._profile = get_human_profile(lang, corpus_profile=self.corpus_profile)
 
     # ── Public API ──
 
@@ -245,6 +248,11 @@ class SignatureTransfer:
 
         # ── Lexical ──
         lower_words = [w.lower() for w in words]
+        norm_words = [
+            re.sub(r"^[^\w]+|[^\w]+$", "", w.lower(), flags=re.UNICODE)
+            for w in words
+        ]
+        text_lower = text.lower()
         word_freq = Counter(lower_words)
         unique = len(word_freq)
 
@@ -283,7 +291,8 @@ class SignatureTransfer:
         conj_ru = {"и", "а", "но", "или", "да", "ни", "же", "однако", "зато"}
         conj_uk = {"і", "й", "а", "але", "або", "чи", "та", "ні", "проте", "зате"}
         conjs = conj_en if self.lang == "en" else (conj_ru if self.lang == "ru" else conj_uk)
-        sig["D_conjunction_rate"] = sum(1 for w in lower_words if w in conjs) / max(1, n_words)
+        conj_hits = sum(1 for w in norm_words if w in conjs)
+        sig["D_conjunction_rate"] = conj_hits / max(1, n_words)
 
         trans_en = {"however", "therefore", "furthermore", "additionally", "moreover",
                     "consequently", "nevertheless", "meanwhile", "subsequently"}
@@ -291,8 +300,50 @@ class SignatureTransfer:
                     "следовательно", "тем не менее", "между тем"}
         trans_uk = {"однак", "тому", "крім того", "більш того",
                     "отже", "тим не менш", "тим часом"}
-        transitions = trans_en if self.lang == "en" else (trans_ru if self.lang == "ru" else trans_uk)
-        sig["D_transition_rate"] = sum(1 for w in lower_words if w in transitions) / max(1, n_words)
+        transitions = (
+            trans_en if self.lang == "en" else (trans_ru if self.lang == "ru" else trans_uk)
+        )
+        transition_hits = self._marker_hits(text_lower, norm_words, transitions)
+        sig["D_transition_rate"] = transition_hits / max(1, n_words)
+
+        hedge_en = {
+            "maybe", "perhaps", "probably", "likely", "roughly", "somewhat",
+            "generally", "often", "usually", "sometimes", "it seems",
+        }
+        hedge_ru = {
+            "возможно", "вероятно", "пожалуй", "скорее", "обычно",
+            "иногда", "часто", "в целом", "кажется",
+        }
+        hedge_uk = {
+            "можливо", "ймовірно", "мабуть", "радше", "зазвичай",
+            "іноді", "часто", "загалом", "здається",
+        }
+        hedges = hedge_en if self.lang == "en" else (hedge_ru if self.lang == "ru" else hedge_uk)
+        hedge_hits = self._marker_hits(text_lower, norm_words, hedges)
+        sig["D_hedge_rate"] = hedge_hits / max(1, n_words)
+
+        colloq_en = {
+            "well", "actually", "really", "basically", "plus", "anyway",
+            "sure", "okay", "yeah", "you know",
+        }
+        colloq_ru = {
+            "ну", "вообще", "правда", "реально", "плюс", "ладно",
+            "окей", "кстати", "по сути",
+        }
+        colloq_uk = {
+            "ну", "взагалі", "справді", "реально", "плюс", "гаразд",
+            "окей", "до речі", "по суті",
+        }
+        colloquialisms = (
+            colloq_en if self.lang == "en" else (colloq_ru if self.lang == "ru" else colloq_uk)
+        )
+        colloquial_hits = self._marker_hits(text_lower, norm_words, colloquialisms)
+        sig["D_colloquial_rate"] = colloquial_hits / max(1, n_words)
+
+        connector_markers = set(conjs) | set(transitions)
+        connector_hits = conj_hits + transition_hits
+        connector_types = self._marker_types(text_lower, norm_words, connector_markers)
+        sig["D_connector_variety"] = len(connector_types) / max(1, connector_hits)
 
         # AI pattern rate
         ai_en = {"furthermore", "additionally", "it is important to note",
@@ -303,7 +354,6 @@ class SignatureTransfer:
         ai_uk = {"необхідно зазначити", "слід підкреслити", "важливо зазначити",
                  "варто зазначити", "підсумовуючи", "на завершення"}
         ai_pats = ai_en if self.lang == "en" else (ai_ru if self.lang == "ru" else ai_uk)
-        text_lower = text.lower()
         ai_count = sum(1 for p in ai_pats if p in text_lower)
         sig["D_ai_pattern_rate"] = ai_count / max(1, n_sents)
 
@@ -387,7 +437,7 @@ class SignatureTransfer:
         # direction > 0 means we need MORE variance
         if direction > 0:
             # Find the most "average" sentences and split/extend them
-            template = _HUMAN_SENT_LENS.get(self.lang, _HUMAN_SENT_LENS["en"])
+            template = self._target_sentence_lengths()
 
             new_sents = list(sentences)
             modified = False
@@ -759,6 +809,50 @@ class SignatureTransfer:
                 result = result.replace(old, "", 1)
         return re.sub(r'\n{3,}', '\n\n', result).strip()
 
+    def _target_sentence_lengths(self) -> list[int]:
+        """Return language template scaled to the active corpus target."""
+        template = _HUMAN_SENT_LENS.get(self.lang, _HUMAN_SENT_LENS["en"])
+        avg_profile = self._profile.get("S_avg_sent_len", {})
+        target_mean = avg_profile.get("mean", 0.0)
+        if target_mean <= 0:
+            return template
+        base_mean = sum(template) / max(1, len(template))
+        scale = target_mean / max(1.0, base_mean)
+        return [max(3, round(length * scale)) for length in template]
+
+    @staticmethod
+    def _marker_hits(
+        text_lower: str,
+        norm_words: list[str],
+        markers: set[str],
+    ) -> int:
+        """Count one-word and phrase discourse markers."""
+        words = set(norm_words)
+        hits = 0
+        for marker in markers:
+            if " " in marker:
+                hits += text_lower.count(marker)
+            elif marker in words:
+                hits += sum(1 for word in norm_words if word == marker)
+        return hits
+
+    @staticmethod
+    def _marker_types(
+        text_lower: str,
+        norm_words: list[str],
+        markers: set[str],
+    ) -> set[str]:
+        """Return unique marker types present in text."""
+        words = set(norm_words)
+        present: set[str] = set()
+        for marker in markers:
+            if " " in marker:
+                if marker in text_lower:
+                    present.add(marker)
+            elif marker in words:
+                present.add(marker)
+        return present
+
     @staticmethod
     def _char_entropy(text: str) -> float:
         if not text:
@@ -848,17 +942,26 @@ def transfer_signature(
     lang: str = "en",
     intensity: float = 0.6,
     seed: int | None = None,
+    corpus_profile: str | None = None,
 ) -> TransferResult:
     """Move text's statistical signature toward the human zone.
 
     ASH™ Statistical Signature Transfer™.
     """
-    return SignatureTransfer(lang=lang, seed=seed).transfer(text, intensity)
+    return SignatureTransfer(
+        lang=lang,
+        seed=seed,
+        corpus_profile=corpus_profile,
+    ).transfer(text, intensity)
 
 
 def compute_text_signature(
     text: str,
     lang: str = "en",
+    corpus_profile: str | None = None,
 ) -> dict[str, float]:
     """Compute ~30-dimensional statistical signature of text."""
-    return SignatureTransfer(lang=lang).compute_signature(text)
+    return SignatureTransfer(
+        lang=lang,
+        corpus_profile=corpus_profile,
+    ).compute_signature(text)

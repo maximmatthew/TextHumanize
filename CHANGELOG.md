@@ -20,6 +20,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Core-language regression fixtures** — added fixture-driven EN/RU/UK regression cases for protected tokens, cross-language leakage, and language-aware anti-overhumanize cleanup.
 - **Domain dictionaries** — added curated SaaS, ecommerce, fintech, legal, education, real estate, and healthcare term packs with auto-detection and explicit `preserve={"domains": [...]}` protection.
 - **Idiolect style presets** — expanded `target_style` with editor/founder/expert/support personas plus RU aliases such as `редактор`, `основатель`, `эксперт`, `журналист`, and `студент`.
+- **ASH corpus profiles** — added corpus-level target distributions for web, SEO, marketing, support, academic, formal, docs, social/chat, editorial, founder, expert, and student signatures, including sentence length, punctuation, connector variety, hedge words, and colloquial turns.
 
 ### Changed
 - **Safer default preservation** — numeric values are protected by default and semantic placeholders are inline-safe, allowing text around protected values to still be improved.

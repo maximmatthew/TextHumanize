@@ -181,11 +181,13 @@ class ASHEngine:
         *,
         pipeline_intensity: int = 60,
         pipeline_profile: str = "web",
+        corpus_profile: str | None = None,
     ) -> None:
         self.lang = lang
         self.seed = seed
         self.pipeline_intensity = pipeline_intensity
         self.pipeline_profile = pipeline_profile
+        self.corpus_profile = corpus_profile
 
     def humanize(
         self,
@@ -282,7 +284,11 @@ class ASHEngine:
         if cfg["enable_signature"]:
             try:
                 from texthumanize.signature_transfer import SignatureTransfer
-                st = SignatureTransfer(lang=self.lang, seed=self.seed)
+                st = SignatureTransfer(
+                    lang=self.lang,
+                    seed=self.seed,
+                    corpus_profile=self.corpus_profile or self.pipeline_profile,
+                )
                 sig_result = st.transfer(current, intensity=cfg["intensity"])
                 current = sig_result.text
                 steps.append("signature_transfer")
@@ -421,7 +427,10 @@ class ASHEngine:
         # Signature distance
         try:
             from texthumanize.signature_transfer import SignatureTransfer
-            st = SignatureTransfer(lang=self.lang)
+            st = SignatureTransfer(
+                lang=self.lang,
+                corpus_profile=self.corpus_profile or self.pipeline_profile,
+            )
             sig = st.compute_signature(text)
             dist = st.distance_to_human(text)
             analysis["signature"] = {
@@ -494,6 +503,7 @@ def ash_humanize(
     use_pipeline: bool = True,
     pipeline_intensity: int = 60,
     pipeline_profile: str = "web",
+    corpus_profile: str | None = None,
 ) -> ASHResult:
     """Humanize text using the full ASH™ pipeline.
 
@@ -525,6 +535,7 @@ def ash_humanize(
         lang=lang, seed=seed,
         pipeline_intensity=pipeline_intensity,
         pipeline_profile=pipeline_profile,
+        corpus_profile=corpus_profile,
     ).humanize(
         text, preset=preset, intensity=intensity,
         use_pipeline=use_pipeline,
@@ -534,13 +545,14 @@ def ash_humanize(
 def ash_analyze(
     text: str,
     lang: str = "en",
+    corpus_profile: str | None = None,
 ) -> dict[str, Any]:
     """Analyze text using all ASH™ diagnostic tools.
 
     Returns watermark verdict, perplexity curve, signature
     distance, cognitive uniformity, and per-sentence problem map.
     """
-    return ASHEngine(lang=lang).analyze(text)
+    return ASHEngine(lang=lang, corpus_profile=corpus_profile).analyze(text)
 
 
 def list_ash_presets() -> dict[str, dict[str, Any]]:

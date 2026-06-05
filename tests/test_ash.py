@@ -74,6 +74,67 @@ class TestHumanProfiles:
         if len(gaps) > 1:
             assert abs(gaps[0][1]) >= abs(gaps[1][1])
 
+    def test_corpus_profile_overlays_change_targets(self):
+        from texthumanize._human_profiles import get_human_profile
+
+        academic = get_human_profile("en", corpus_profile="academic")
+        support = get_human_profile("en", corpus_profile="support_reply")
+        social = get_human_profile("en", corpus_profile="social_post")
+        formal = get_human_profile("en", corpus_profile="formal")
+
+        assert academic["S_avg_sent_len"]["mean"] > support["S_avg_sent_len"]["mean"]
+        assert support["P_question_rate"]["mean"] > academic["P_question_rate"]["mean"]
+        assert social["D_colloquial_rate"]["mean"] > formal["D_colloquial_rate"]["mean"]
+        assert academic["D_hedge_rate"]["mean"] > formal["D_colloquial_rate"]["mean"]
+
+    def test_corpus_profile_aliases_and_listing(self):
+        from texthumanize._human_profiles import (
+            list_corpus_profiles,
+            normalize_corpus_profile,
+        )
+
+        assert normalize_corpus_profile("support-reply") == "support"
+        assert normalize_corpus_profile("редактор") == "editorial"
+        assert normalize_corpus_profile("unknown-profile") is None
+
+        profiles = list_corpus_profiles()
+        assert "academic" in profiles
+        assert "support_reply" in profiles["support"]["aliases"]
+
+    def test_signature_includes_corpus_discourse_metrics(self):
+        from texthumanize.signature_transfer import SignatureTransfer
+
+        text = (
+            "Well, maybe this helps. However, it usually depends on context. "
+            "Actually, you can keep the next step simple."
+        )
+        st = SignatureTransfer(lang="en", corpus_profile="support")
+        sig = st.compute_signature(text)
+
+        assert sig["D_hedge_rate"] > 0
+        assert sig["D_colloquial_rate"] > 0
+        assert sig["D_connector_variety"] > 0
+
+    def test_signature_transfer_uses_corpus_profile_target(self):
+        from texthumanize.signature_transfer import SignatureTransfer
+
+        academic = SignatureTransfer(lang="en", corpus_profile="academic")
+        support = SignatureTransfer(lang="en", corpus_profile="support")
+
+        assert academic.corpus_profile == "academic"
+        assert support.corpus_profile == "support"
+        assert (
+            academic._target_sentence_lengths()[0]
+            > support._target_sentence_lengths()[0]
+        )
+
+    def test_top_level_corpus_profile_exports(self):
+        import texthumanize as th
+
+        assert th.normalize_corpus_profile("support_reply") == "support"
+        assert "academic" in th.list_corpus_profiles()
+        assert th.get_corpus_human_profile("en", "chat")["D_colloquial_rate"]["mean"] > 0
+
 
 # ═══════════════════════════════════════════════════════════════
 #  PERPLEXITY SCULPTOR

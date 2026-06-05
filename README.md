@@ -18,7 +18,7 @@ readability, and internal risk signals; it is not a bypass guarantee.
 [![PHP 8.1+](https://img.shields.io/badge/php-8.1+-777BB4.svg?logo=php&logoColor=white)](https://www.php.net/)
 &nbsp;&nbsp;
 [![CI](https://github.com/ksanyok/TextHumanize/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/ksanyok/TextHumanize/actions/workflows/ci.yml)
-[![Tests](https://img.shields.io/badge/tests-2105%20passed-2ea44f.svg?logo=pytest&logoColor=white)](https://github.com/ksanyok/TextHumanize/actions/workflows/ci.yml)
+[![Tests](https://img.shields.io/badge/tests-2154%20passed-2ea44f.svg?logo=pytest&logoColor=white)](https://github.com/ksanyok/TextHumanize/actions/workflows/ci.yml)
 &nbsp;&nbsp;
 [![Zero Dependencies](https://img.shields.io/badge/dependencies-zero-brightgreen.svg)]()
 [![PyPI](https://img.shields.io/pypi/v/texthumanize.svg?logo=pypi&logoColor=white)](https://pypi.org/project/texthumanize/)
@@ -26,7 +26,7 @@ readability, and internal risk signals; it is not a bypass guarantee.
 
 <br/>
 
-**235,000+ lines of code** · **122 Python modules** · **38-stage pipeline** · **25 languages + universal** · **2,105 tests**
+**235,000+ lines of code** · **122 Python modules** · **38-stage pipeline** · **25 languages + universal** · **2,154 tests**
 
 **3 proprietary technologies:** PHANTOM™ (gradient-guided internal score optimization) · ASH™ (adaptive signature humanization) · SentenceValidator™ (interstage quality gate)
 
@@ -117,7 +117,7 @@ TextHumanize is a **pure-algorithmic text processing engine** that transforms AI
 | 📊 | **Full analytics** | Readability (6 indices), coherence, plagiarism, stylometric fingerprint, content health score |
 | 🎭 | **Tone control** | Analyze and adjust formality across 7 levels |
 | 📚 | **2,944 dictionary entries** | EN 1,733 + RU 1,345 + UK 1,042 + DE 874 + FR 718 + ES 749 + more |
-| 🏢 | **Enterprise-ready** | Dual license, 2,105+ tests, CI/CD, REST API, Docker, on-prem deployment |
+| 🏢 | **Enterprise-ready** | Dual license, 2,154+ tests, CI/CD, REST API, Docker, on-prem deployment |
 | 🛡️ | **Secure by design** | Input limits, zero network calls, linear-time regex, no eval/exec |
 | 📝 | **Full auditability** | Every call returns `change_ratio`, `quality_score`, `similarity`, `explain()` report |
 
@@ -153,15 +153,17 @@ result = humanize_until_human("AI text...", lang="en")     # Auto-iterates again
 AI Text → Feature Extraction → Human Profile Matching → Signature Transfer → Perplexity Sculpting → Human-like Text
 ```
 
-- **Human Profiles** — statistical fingerprints of real human writing per language (sentence length distribution, vocabulary richness, burstiness patterns, punctuation habits)
+- **Human Profiles** — statistical fingerprints of real human writing per language and corpus profile (sentence length distribution, connector variety, hedge words, colloquial turns, punctuation habits)
 - **Signature Transfer** — morphs AI text's statistical signature toward the target human profile
 - **Perplexity Sculpting** — adjusts word-level perplexity to match human perplexity distribution curves
 - **Metric Gaps** — identifies and systematically closes the gap between AI and human writing on 35+ features
 
 ```python
-from texthumanize import ASHEngine, ASH_PRESETS
-ash = ASHEngine(preset="balanced")
-result = ash.humanize("AI text...", lang="en")
+from texthumanize import ASHEngine, list_corpus_profiles
+
+print(list_corpus_profiles()["support"]["aliases"])
+ash = ASHEngine(lang="en", pipeline_profile="support")
+result = ash.humanize("AI text...", preset="balanced")
 ```
 
 ### SentenceValidator™ — Interstage Quality Gate
@@ -478,7 +480,7 @@ AI score: 75% → 17%  (reduction: 58 percentage points)
 | Pipeline stages | **38** | 2–4 |
 | Languages | **25 + universal** | 1–2 |
 | AI detection | ✅ 3-layer (18 + 35 + MLP) | ❌ |
-| Python tests | **2,105** | 10–50 |
+| Python tests | **2,154** | 10–50 |
 | Codebase size | **235,000+ lines** | 500–2K |
 | Platforms | Python + JS + PHP | Single |
 | Plugin system | ✅ | ❌ |
@@ -1632,14 +1634,14 @@ cd php/ && composer install && vendor/bin/phpunit
 
 | Platform | Tests | Status |
 |:---------|------:|:------:|
-| **Python** (pytest, 3.9–3.13) | 2,149 | ✅ All passing |
+| **Python** (pytest, 3.9–3.13) | 2,154 | ✅ All passing |
 | **PHP** (PHPUnit, 8.1–8.3) | 223 | ✅ All passing |
 | **TypeScript** (Jest) | 28 | ✅ All passing |
-| **Total** | **2,400** | ✅ |
+| **Total** | **2,405** | ✅ |
 
 ```bash
 # Python
-pytest -q                          # 2,149 passed
+pytest -q                          # 2,154 passed
 pytest --cov=texthumanize          # Coverage report
 ruff check texthumanize/           # Lint
 mypy texthumanize/                 # Type check
@@ -1727,7 +1729,7 @@ See the full [Responsible Use guide](https://ksanyok.github.io/TextHumanize/resp
 | **Privacy** | 100% local. Zero network calls. No data leaves your server |
 | **Auditability** | Every call returns `change_ratio`, `quality_score`, `similarity`, `explain()` report |
 | **Integration** | Python SDK · JS SDK · PHP SDK · CLI · REST API · Docker · SSE streaming |
-| **Reliability** | 2,356 tests across 3 platforms, CI/CD with ruff + mypy |
+| **Reliability** | 2,405 tests across 3 platforms, CI/CD with ruff + mypy |
 | **No vendor lock-in** | Zero dependencies. No cloud APIs, no API keys, no rate limits |
 | **Language coverage** | 25 language packs + universal processor for any language |
 | **Self-hosted** | Docker image, pip install, on-premise deployment |
@@ -1842,7 +1844,7 @@ Try the [Live Demo](https://texthumanize.link/). For local use, the REST API + S
 - **Final sanitization** in `run()` method catches post-loop residual artifacts
 
 ### Stats
-- **2,105 tests** · **122 modules** · **235,000+ lines** · **25 languages** · **38-stage pipeline**
+- **2,154 tests** · **122 modules** · **235,000+ lines** · **25 languages** · **38-stage pipeline**
 
 ---
 

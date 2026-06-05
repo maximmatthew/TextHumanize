@@ -3474,6 +3474,7 @@ def ash_humanize(
     use_pipeline: bool = True,
     pipeline_intensity: int = 60,
     pipeline_profile: str = "web",
+    corpus_profile: str | None = None,
 ) -> Any:
     """Гуманизировать текст через полный ASH™ конвейер.
 
@@ -3498,6 +3499,7 @@ def ash_humanize(
         use_pipeline: Использовать ядро пайплайна (рекомендуется).
         pipeline_intensity: Интенсивность ядра пайплайна (0-100).
         pipeline_profile: Профиль ядра пайплайна.
+        corpus_profile: ASH corpus target profile. Defaults to pipeline_profile.
 
     Returns:
         ASHResult с полями: text, original_text, lang,
@@ -3512,13 +3514,18 @@ def ash_humanize(
         lang=lang, seed=seed,
         pipeline_intensity=pipeline_intensity,
         pipeline_profile=pipeline_profile,
+        corpus_profile=corpus_profile,
     ).humanize(
         text, preset=preset, intensity=intensity,
         use_pipeline=use_pipeline,
     )
 
 
-def ash_analyze(text: str, lang: str = "auto") -> dict:
+def ash_analyze(
+    text: str,
+    lang: str = "auto",
+    corpus_profile: str | None = None,
+) -> dict:
     """Комплексный ASH™ анализ текста.
 
     Возвращает: watermark verdict, perplexity curve,
@@ -3527,6 +3534,7 @@ def ash_analyze(text: str, lang: str = "auto") -> dict:
     Args:
         text: Текст для анализа.
         lang: Код языка.
+        corpus_profile: ASH corpus target profile for signature distance.
 
     Returns:
         dict со всеми диагностиками ASH™.
@@ -3535,7 +3543,7 @@ def ash_analyze(text: str, lang: str = "auto") -> dict:
         lang = detect_language(text)
 
     mod = _lazy_import("texthumanize.ash_engine")
-    return mod.ASHEngine(lang=lang).analyze(text)
+    return mod.ASHEngine(lang=lang, corpus_profile=corpus_profile).analyze(text)
 
 
 def sculpt_perplexity(
@@ -3570,6 +3578,7 @@ def transfer_signature(
     lang: str = "auto",
     intensity: float = 0.5,
     seed: int | None = None,
+    corpus_profile: str | None = None,
 ) -> Any:
     """Statistical Signature Transfer™ — перенос статистического отпечатка.
 
@@ -3581,6 +3590,7 @@ def transfer_signature(
         lang: Код языка.
         intensity: 0.0–1.0.
         seed: Зерно RNG.
+        corpus_profile: ASH corpus target profile.
 
     Returns:
         TransferResult.
@@ -3589,7 +3599,11 @@ def transfer_signature(
         lang = detect_language(text)
 
     mod = _lazy_import("texthumanize.signature_transfer")
-    return mod.SignatureTransfer(lang=lang, seed=seed).transfer(text, intensity)
+    return mod.SignatureTransfer(
+        lang=lang,
+        seed=seed,
+        corpus_profile=corpus_profile,
+    ).transfer(text, intensity)
 
 
 def detect_statistical_watermark(text: str, lang: str = "auto") -> Any:
