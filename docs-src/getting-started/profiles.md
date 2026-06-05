@@ -37,7 +37,7 @@ result = humanize(text, lang="en", profile="academic", intensity=25)
 
 ## Style Presets
 
-5 built-in style presets that emulate different writing personas:
+9 built-in style/idiolect presets that emulate different writing personas:
 
 | Preset | Style |
 |--------|-------|
@@ -46,7 +46,12 @@ result = humanize(text, lang="en", profile="academic", intensity=25)
 | `scientist` | Precise, longer sentences, technical terms |
 | `journalist` | Clear, factual, inverted pyramid |
 | `blogger` | Conversational, personal, engaging |
+| `editor` / `редактор` | Polished, restrained, publication-ready |
+| `founder` / `основатель` | Direct, strategic, personal |
+| `expert` / `эксперт` | Evidence-led, domain-aware, practical |
+| `support` / `поддержка` | Helpful, calm, short support replies |
 
 ```python
 result = humanize(text, lang="en", target_style="copywriter")
+result = humanize(text, lang="en", target_style="редактор")
 ```

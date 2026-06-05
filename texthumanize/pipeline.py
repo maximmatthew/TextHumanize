@@ -26,7 +26,11 @@ from texthumanize.repetitions import RepetitionReducer
 from texthumanize.segmenter import Segmenter
 from texthumanize.sentence_validator import SentenceValidator
 from texthumanize.structure import StructureDiversifier
-from texthumanize.stylistic import StylisticAnalyzer, StylisticFingerprint
+from texthumanize.stylistic import (
+    StylisticAnalyzer,
+    StylisticFingerprint,
+    resolve_style_target,
+)
 from texthumanize.syntax_rewriter import SyntaxRewriter
 from texthumanize.tone_harmonizer import ToneHarmonizer
 from texthumanize.universal import UniversalProcessor
@@ -1394,10 +1398,9 @@ class Pipeline:
         # и корректируем параметры для приближения к целевому
         style_meta: dict = {}
         target_fp = self.options.target_style
-        # Resolve preset name → StylisticFingerprint
+        # Resolve preset name/alias → StylisticFingerprint
         if isinstance(target_fp, str):
-            from texthumanize.stylistic import STYLE_PRESETS
-            target_fp = STYLE_PRESETS.get(target_fp)
+            target_fp, _target_style_name = resolve_style_target(target_fp)
         if target_fp is not None and isinstance(target_fp, StylisticFingerprint):
             style_analyzer = StylisticAnalyzer(lang=lang)
             source_fp = style_analyzer.extract(text)

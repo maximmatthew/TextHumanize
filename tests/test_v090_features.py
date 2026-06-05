@@ -323,6 +323,11 @@ class TestStylometricAnonymizer:
         result = anon.anonymize(_AI_TEXT_EN, target="blogger")
         assert result.target_preset == "blogger"
 
+    def test_anonymizer_with_russian_idiolect_alias(self):
+        anon = StylometricAnonymizer(lang="en", seed=42)
+        result = anon.anonymize(_AI_TEXT_EN, target="редактор")
+        assert result.target_preset == "editor"
+
     def test_anonymizer_similarity_fields(self):
         anon = StylometricAnonymizer(lang="en", seed=42)
         result = anon.anonymize(_AI_TEXT_EN)

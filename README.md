@@ -108,7 +108,7 @@ TextHumanize is a **pure-algorithmic text processing engine** that transforms AI
 |:-:|:----------|:--------|
 | 🚀 | **Blazing fast** | 300–500 ms for a paragraph; full article in 1–2 seconds |
 | 🔒 | **100% private** | All processing is local — your text never leaves your machine |
-| 🎯 | **Precise control** | Intensity 0–100, 9 profiles, 5 style presets, keyword preservation, max change ratio |
+| 🎯 | **Precise control** | Intensity 0–100, 9 profiles, 9 idiolect presets, keyword preservation, max change ratio |
 | 🌍 | **25 languages** | Deep support for EN/RU/UK/DE; dictionaries for 25 languages; statistical processor for any other |
 | 📦 | **Zero dependencies** | Pure Python stdlib — no pip packages, no model downloads, starts in <100 ms |
 | 🔁 | **Reproducible** | Seed-based PRNG — same input + same seed = identical output |
@@ -435,7 +435,7 @@ AI score: 75% → 17%  (reduction: 58 percentage points)
 | **Quality** | `BenchmarkSuite` — 6-dimension scoring | ✅ | — | — |
 | | `FingerprintRandomizer` — anti-detection | ✅ | — | — |
 | | `QualityGate` — CI/CD content check | ✅ | — | — |
-| **Advanced** | Style presets (5 personas) | ✅ | — | — |
+| **Advanced** | Idiolect presets (9 personas) | ✅ | — | — |
 | | Auto-Tuner (feedback loop) | ✅ | — | — |
 | | AI backend (OpenAI/Ollama/OSS) | ✅ | — | — |
 | | Custom dictionary overlays | ✅ | — | — |
@@ -790,7 +790,7 @@ results = humanize_sentences(text, lang="en")
 | `social` | Social media posts | 6–15 words | High | 85 |
 | `email` | Business emails | 10–22 words | Medium | 50 |
 
-### Style Presets (5 Personas)
+### Style Presets (9 Idiolects)
 
 | Preset | Sentences | Vocabulary | Style |
 |:-------|:---------:|:----------:|:------|
@@ -799,12 +799,18 @@ results = humanize_sentences(text, lang="en")
 | 🔬 `scientist` | Long, complex | Technical | Formal, precise, cautious hedging |
 | 📰 `journalist` | Medium, diverse | Clear | Neutral, fact-oriented |
 | 💬 `blogger` | Short, punchy | Informal | Questions, exclamations, personal |
+| 🧑‍💼 `editor` / `редактор` | Medium | Tight | Clear, restrained, polished |
+| 🚀 `founder` / `основатель` | Varied | Direct | Confident, personal, strategic |
+| 🧠 `expert` / `эксперт` | Medium–long | Domain-heavy | Practical, evidence-led |
+| 🎧 `support` / `поддержка` | Short | Simple | Helpful, calm, service-oriented |
 
 ```python
 from texthumanize import STYLE_PRESETS
 
 result = humanize(text, lang="en", profile="seo", intensity=40,
                   constraints={"keep_keywords": ["API", "cloud"]})
+
+result = humanize(text, lang="en", target_style="редактор")
 ```
 
 ### Intensity Levels
@@ -1626,14 +1632,14 @@ cd php/ && composer install && vendor/bin/phpunit
 
 | Platform | Tests | Status |
 |:---------|------:|:------:|
-| **Python** (pytest, 3.9–3.13) | 2,144 | ✅ All passing |
+| **Python** (pytest, 3.9–3.13) | 2,149 | ✅ All passing |
 | **PHP** (PHPUnit, 8.1–8.3) | 223 | ✅ All passing |
 | **TypeScript** (Jest) | 28 | ✅ All passing |
-| **Total** | **2,395** | ✅ |
+| **Total** | **2,400** | ✅ |
 
 ```bash
 # Python
-pytest -q                          # 2,144 passed
+pytest -q                          # 2,149 passed
 pytest --cov=texthumanize          # Coverage report
 ruff check texthumanize/           # Lint
 mypy texthumanize/                 # Type check

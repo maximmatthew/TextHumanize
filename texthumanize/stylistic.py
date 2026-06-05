@@ -324,10 +324,15 @@ class StylometricAnonymizer:
             ``AnonymizeResult`` с трансформированным текстом, сходствами
             до/после и списком изменений.
         """
+        target_name = "custom"
         if isinstance(target, str):
-            target = STYLE_PRESETS.get(target)
+            target, target_name = resolve_style_target(target)
+        elif isinstance(target, StylisticFingerprint):
+            target_name = "custom"
+
         if target is None:
             target = STYLE_PRESETS["journalist"]
+            target_name = "journalist"
 
         source_fp = self._analyzer.extract(text)
         source_sim = source_fp.similarity(target)
@@ -353,12 +358,7 @@ class StylometricAnonymizer:
         return AnonymizeResult(
             text=result,
             original=text,
-            target_preset=(
-                next(
-                    (k for k, v in STYLE_PRESETS.items() if v is target),
-                    "custom",
-                )
-            ),
+            target_preset=target_name,
             similarity_before=round(source_sim, 4),
             similarity_after=round(result_sim, 4),
             changes=changes,
@@ -718,4 +718,171 @@ STYLE_PRESETS: dict[str, StylisticFingerprint] = {
         pronoun_start_ratio=0.25,
         connector_start_ratio=0.03,
     ),
+
+    # Редактор: ровный, плотный, без лишней экспрессии; хороший default
+    # для финальной полировки статей, документации и коммерческого текста.
+    "editor": StylisticFingerprint(
+        sentence_length_mean=17.0,
+        sentence_length_median=16.0,
+        sentence_length_std=6.0,
+        sentence_length_mode=15,
+        semicolons_per_k=0.7,
+        colons_per_k=1.4,
+        dashes_per_k=2.0,
+        exclamations_per_k=0.0,
+        questions_per_k=0.4,
+        ellipsis_per_k=0.0,
+        commas_per_k=30.0,
+        avg_paragraph_length=3.5,
+        complex_sentence_ratio=0.38,
+        question_ratio=0.02,
+        exclamation_ratio=0.0,
+        avg_word_length=5.6,
+        long_word_ratio=0.16,
+        vocabulary_richness=0.76,
+        pronoun_start_ratio=0.08,
+        connector_start_ratio=0.10,
+    ),
+
+    # Основатель: короткие тезисы + несколько длинных объяснений,
+    # уверенный личный голос, но без excessive маркетингового шума.
+    "founder": StylisticFingerprint(
+        sentence_length_mean=14.0,
+        sentence_length_median=12.0,
+        sentence_length_std=8.0,
+        sentence_length_mode=9,
+        semicolons_per_k=0.2,
+        colons_per_k=1.6,
+        dashes_per_k=3.0,
+        exclamations_per_k=0.3,
+        questions_per_k=1.1,
+        ellipsis_per_k=0.2,
+        commas_per_k=24.0,
+        avg_paragraph_length=2.4,
+        complex_sentence_ratio=0.24,
+        question_ratio=0.06,
+        exclamation_ratio=0.02,
+        avg_word_length=5.2,
+        long_word_ratio=0.11,
+        vocabulary_richness=0.74,
+        pronoun_start_ratio=0.18,
+        connector_start_ratio=0.06,
+    ),
+
+    # Эксперт: доказательный, практичный, чуть менее академичный, чем scientist.
+    "expert": StylisticFingerprint(
+        sentence_length_mean=19.0,
+        sentence_length_median=18.0,
+        sentence_length_std=6.5,
+        sentence_length_mode=17,
+        semicolons_per_k=0.9,
+        colons_per_k=1.7,
+        dashes_per_k=2.2,
+        exclamations_per_k=0.0,
+        questions_per_k=0.5,
+        ellipsis_per_k=0.0,
+        commas_per_k=33.0,
+        avg_paragraph_length=4.2,
+        complex_sentence_ratio=0.46,
+        question_ratio=0.03,
+        exclamation_ratio=0.0,
+        avg_word_length=5.9,
+        long_word_ratio=0.20,
+        vocabulary_richness=0.73,
+        pronoun_start_ratio=0.06,
+        connector_start_ratio=0.14,
+    ),
+
+    # Support: коротко, ясно, эмпатично; подходит для ответов клиентам.
+    "support": StylisticFingerprint(
+        sentence_length_mean=11.0,
+        sentence_length_median=10.0,
+        sentence_length_std=4.8,
+        sentence_length_mode=9,
+        semicolons_per_k=0.0,
+        colons_per_k=0.9,
+        dashes_per_k=1.0,
+        exclamations_per_k=0.2,
+        questions_per_k=1.0,
+        ellipsis_per_k=0.0,
+        commas_per_k=20.0,
+        avg_paragraph_length=2.0,
+        complex_sentence_ratio=0.16,
+        question_ratio=0.06,
+        exclamation_ratio=0.01,
+        avg_word_length=4.9,
+        long_word_ratio=0.08,
+        vocabulary_richness=0.66,
+        pronoun_start_ratio=0.20,
+        connector_start_ratio=0.07,
+    ),
 }
+
+STYLE_PRESET_ALIASES: dict[str, str] = {
+    "студент": "student",
+    "student": "student",
+    "copywriter": "copywriter",
+    "копирайтер": "copywriter",
+    "scientist": "scientist",
+    "ученый": "scientist",
+    "учёный": "scientist",
+    "journalist": "journalist",
+    "журналист": "journalist",
+    "blogger": "blogger",
+    "блогер": "blogger",
+    "editor": "editor",
+    "редактор": "editor",
+    "founder": "founder",
+    "основатель": "founder",
+    "expert": "expert",
+    "эксперт": "expert",
+    "support": "support",
+    "support_agent": "support",
+    "support_reply": "support",
+    "customer_support": "support",
+    "поддержка": "support",
+}
+
+
+def normalize_style_preset(name: str) -> str | None:
+    """Return canonical style preset name for aliases such as ``редактор``."""
+    key = name.strip().lower().replace("-", "_").replace(" ", "_")
+    if key in STYLE_PRESETS:
+        return key
+    return STYLE_PRESET_ALIASES.get(key)
+
+
+def get_style_preset(name: str) -> StylisticFingerprint | None:
+    """Return a style preset by canonical name or alias."""
+    canonical = normalize_style_preset(name)
+    if canonical is None:
+        return None
+    return STYLE_PRESETS[canonical]
+
+
+def list_style_presets() -> dict[str, dict[str, str | list[str]]]:
+    """Return public metadata for style/idiolect presets and aliases."""
+    aliases: dict[str, list[str]] = {name: [] for name in STYLE_PRESETS}
+    for alias, canonical in STYLE_PRESET_ALIASES.items():
+        if alias != canonical:
+            aliases.setdefault(canonical, []).append(alias)
+    return {
+        name: {
+            "aliases": sorted(aliases.get(name, [])),
+        }
+        for name in sorted(STYLE_PRESETS)
+    }
+
+
+def resolve_style_target(
+    target: StylisticFingerprint | str | None,
+) -> tuple[StylisticFingerprint | None, str | None]:
+    """Resolve a preset name/alias or fingerprint to ``(fingerprint, name)``."""
+    if isinstance(target, StylisticFingerprint):
+        return target, "custom"
+    if isinstance(target, str):
+        canonical = normalize_style_preset(target)
+        if canonical is None:
+            return None, None
+        return STYLE_PRESETS[canonical], canonical
+    return None, None

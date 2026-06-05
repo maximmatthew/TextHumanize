@@ -4,7 +4,15 @@ from __future__ import annotations
 
 import pytest
 
-from texthumanize.stylistic import StylisticAnalyzer, StylisticFingerprint
+from texthumanize.stylistic import (
+    STYLE_PRESETS,
+    StylisticAnalyzer,
+    StylisticFingerprint,
+    get_style_preset,
+    list_style_presets,
+    normalize_style_preset,
+    resolve_style_target,
+)
 
 # ───────────────────────── Sample texts ─────────────────────
 
@@ -179,6 +187,44 @@ class TestStylisticPipelineIntegration:
         fp = StylisticFingerprint(sentence_length_mean=12.0)
         opts = HumanizeOptions(target_style=fp)
         assert opts.target_style is fp
+
+    def test_idiolect_presets_available(self):
+        required = {
+            "editor",
+            "founder",
+            "expert",
+            "support",
+            "journalist",
+            "student",
+        }
+        assert required <= set(STYLE_PRESETS)
+
+    def test_russian_idiolect_aliases_resolve(self):
+        aliases = {
+            "редактор": "editor",
+            "основатель": "founder",
+            "эксперт": "expert",
+            "журналист": "journalist",
+            "студент": "student",
+            "поддержка": "support",
+        }
+        for alias, canonical in aliases.items():
+            assert normalize_style_preset(alias) == canonical
+            fp, name = resolve_style_target(alias)
+            assert name == canonical
+            assert fp is STYLE_PRESETS[canonical]
+
+    def test_public_style_preset_helpers(self):
+        assert get_style_preset("support_reply") is STYLE_PRESETS["support"]
+        metadata = list_style_presets()
+        assert "editor" in metadata
+        assert "редактор" in metadata["editor"]["aliases"]
+
+    def test_top_level_style_exports(self):
+        import texthumanize
+        assert texthumanize.normalize_style_preset("основатель") == "founder"
+        assert texthumanize.get_style_preset("expert") is STYLE_PRESETS["expert"]
+        assert "support" in texthumanize.list_style_presets()
 
     def test_pipeline_with_target_style(self):
         from texthumanize import StylisticAnalyzer, humanize

@@ -171,8 +171,10 @@ def humanize(
             similarity, ухудшении grammar score или readability.
         seed: Сид для воспроизводимости результатов.
         target_style: Целевой стилистический отпечаток.
-            Может быть StylisticFingerprint или имя пресета (str):
-            'student', 'copywriter', 'scientist', 'journalist', 'blogger'.
+            Может быть StylisticFingerprint или имя пресета/алиаса (str):
+            'student', 'copywriter', 'scientist', 'journalist', 'blogger',
+            'editor', 'founder', 'expert', 'support', а также RU-алиасы
+            вроде 'редактор', 'основатель', 'эксперт', 'журналист'.
         only_flagged: Если True, гуманизировать только предложения,
             которые detect_ai_sentences помечает как AI (ai_probability > 0.5).
             Предложения с label="human" остаются без изменений.
@@ -3425,8 +3427,9 @@ def anonymize_style(
         lang: Код языка (или ``"auto"``).
         target: Целевой стиль — ``StylisticFingerprint``, имя пресета
             (``'student'``, ``'copywriter'``, ``'scientist'``,
-            ``'journalist'``, ``'blogger'``) или ``None`` (default
-            = ``'journalist'``).
+            ``'journalist'``, ``'blogger'``, ``'editor'``,
+            ``'founder'``, ``'expert'``, ``'support'`` or RU aliases)
+            или ``None`` (default = ``'journalist'``).
         seed: Сид для воспроизводимости.
 
     Returns:
