@@ -211,6 +211,20 @@ _PATTERNS = {
     "leader_dots": re.compile(r'^.*\.{4,}.*\d+\s*$', re.MULTILINE),
 }
 
+_HTML_BLOCK_CLOSE_MARKERS = (
+    "</ul",
+    "</ol",
+    "</table",
+    "</thead",
+    "</tbody",
+    "</tr",
+    "</pre",
+    "</code",
+    "</script",
+    "</style",
+    "</blockquote",
+)
+
 # Паттерн для чисел с единицами измерения
 _NUMBER_PATTERN = re.compile(
     r'\b\d+(?:[.,]\d+)?(?:\s*(?:руб|грн|USD|EUR|%|°[CF]?'
@@ -366,9 +380,24 @@ class Segmenter:
         pattern = _PATTERNS.get(kind)
         if not pattern:
             return text
+        text_lower = text.lower()
+        if kind == "html_block" and not any(
+            marker in text_lower for marker in _HTML_BLOCK_CLOSE_MARKERS
+        ):
+            return text
+        if kind == "html_list_item" and "</li" not in text_lower:
+            return text
+        placeholder_spans = [
+            (match.start(), match.end())
+            for match in _PLACEHOLDER_RE.finditer(text)
+        ] if "\x00" in text else []
 
         def replacer(match: re.Match) -> str:
-            if _inside_existing_placeholder(text, match.start(), match.end()):
+            start, end = match.start(), match.end()
+            if placeholder_spans and any(
+                span_start <= start and end <= span_end
+                for span_start, span_end in placeholder_spans
+            ):
                 return match.group(0)
             placeholder = self._make_placeholder(kind)
             segments.append(ProtectedSegment(
