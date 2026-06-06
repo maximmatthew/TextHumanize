@@ -46,6 +46,7 @@ def test_profile_hot_paths_returns_stable_schema() -> None:
     )
 
     assert report["schema_version"] == "text-humanize.hot-path-profile.v1"
+    assert report["memory_policy"] == "tracemalloc_peak_during_separate_uncached_runs"
     assert report["sizes"] == [256]
     assert report["operations"] == ["detect_ai_fast"]
     assert len(report["samples"]) == 1
@@ -57,3 +58,24 @@ def test_profile_hot_paths_returns_stable_schema() -> None:
     assert sample["p50_ms"] >= 0
     assert sample["p95_ms"] >= sample["p50_ms"]
     assert sample["chars_per_sec_p50"] is None or sample["chars_per_sec_p50"] > 0
+    assert sample["tracemalloc_peak_kb_p50"] is not None
+    assert sample["tracemalloc_peak_kb_p95"] is not None
+    assert sample["tracemalloc_peak_kb_p95"] >= sample["tracemalloc_peak_kb_p50"]
+    assert len(sample["tracemalloc_peaks_kb"]) == 1
+
+
+def test_profile_hot_paths_can_disable_memory_measurement() -> None:
+    report = profile_hot_paths(
+        sizes=[128],
+        operations=["detect_ai_fast"],
+        iterations=1,
+        warmups=0,
+        lang="en",
+        measure_memory=False,
+    )
+
+    sample = report["samples"][0]
+    assert report["memory_policy"] == "disabled"
+    assert sample["tracemalloc_peak_kb_p50"] is None
+    assert sample["tracemalloc_peak_kb_p95"] is None
+    assert sample["tracemalloc_peaks_kb"] == []

@@ -21,7 +21,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Domain dictionaries** — added curated SaaS, ecommerce, fintech, legal, education, real estate, and healthcare term packs with auto-detection and explicit `preserve={"domains": [...]}` protection.
 - **Idiolect style presets** — expanded `target_style` with editor/founder/expert/support personas plus RU aliases such as `редактор`, `основатель`, `эксперт`, `журналист`, and `студент`.
 - **ASH corpus profiles** — added corpus-level target distributions for web, SEO, marketing, support, academic, formal, docs, social/chat, editorial, founder, expert, and student signatures, including sentence length, punctuation, connector variety, hedge words, and colloquial turns.
-- **Hot-path profiler** — added `scripts/profile_hot_paths.py` to measure p50/p95 latency on deterministic 1k, 10k, and 100k character inputs for release performance tracking.
+- **Hot-path profiler** — added `scripts/profile_hot_paths.py` to measure p50/p95 latency and tracemalloc p50/p95 peak memory on deterministic 1k, 10k, and 100k character inputs for release performance tracking.
 - **Memory-bounded streaming batch** — added `humanize_batch_stream()` plus `memory_limit_mb` guards for batch, chunked, and stream processing.
 
 ### Changed

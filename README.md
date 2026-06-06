@@ -1398,8 +1398,8 @@ asyncio.run(main())
 
 All benchmarks on Apple Silicon (M-series), Python 3.12, single thread, after warm-up.
 See the public [Benchmark Methodology](https://ksanyok.github.io/TextHumanize/benchmark-methodology/)
-for corpus labels, quality dimensions, latency reporting rules, and detector
-limitations.
+for corpus labels, quality dimensions, latency and tracemalloc peak-memory
+reporting rules, and detector limitations.
 
 ### Speed
 
@@ -1450,6 +1450,8 @@ limitations.
 > texthumanize benchmark --json
 > python scripts/profile_hot_paths.py --sizes 1000,10000,100000 --json
 > ```
+> The hot-path profiler reports p50/p95 latency plus p50/p95 Python allocation
+> peaks from `tracemalloc`; use `--no-memory` when you need latency-only runs.
 
 ---
 

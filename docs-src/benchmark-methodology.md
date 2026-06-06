@@ -92,18 +92,22 @@ Latency should be reported with:
 
 For release notes, prefer a table like:
 
-| Function | Size | p50 | p95 | Notes |
-|----------|------|-----|-----|-------|
-| `humanize()` | 1k chars | TBD | TBD | warm, single thread |
-| `detect_ai()` | 1k chars | TBD | TBD | warm, single thread |
-| `watermark_report()` | 1k chars | TBD | TBD | warm, single thread |
+| Function | Size | p50 | p95 | p50 peak KB | Notes |
+|----------|------|-----|-----|-------------|-------|
+| `humanize()` | 1k chars | TBD | TBD | TBD | warm, single thread |
+| `detect_ai()` | 1k chars | TBD | TBD | TBD | warm, single thread |
+| `watermark_report()` | 1k chars | TBD | TBD | TBD | warm, single thread |
 
 Use the dependency-free hot-path profiler before releases to generate the
-1k/10k/100k p50/p95 latency snapshot:
+1k/10k/100k p50/p95 latency and tracemalloc peak-memory snapshot:
 
 ```bash
 python scripts/profile_hot_paths.py --sizes 1000,10000,100000 --json
 ```
+
+`tracemalloc` tracks Python allocation peaks during separate uncached runs. It
+does not measure full process RSS, so compare numbers only across identical
+runtime, hardware, and command settings.
 
 ## Watermark Benchmarks
 

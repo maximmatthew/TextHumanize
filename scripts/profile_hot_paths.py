@@ -16,6 +16,7 @@ import platform
 import statistics
 import sys
 import time
+import tracemalloc
 from collections.abc import Callable, Iterable, Sequence
 from datetime import datetime, timezone
 from pathlib import Path
@@ -163,6 +164,23 @@ def _time_operation(runner: Operation, text: str, lang: str) -> float:
     return time.perf_counter() - started
 
 
+def _peak_memory_operation(runner: Operation, text: str, lang: str) -> int:
+    """Return peak Python allocations for one uncached operation run."""
+    _clear_internal_caches()
+    was_tracing = tracemalloc.is_tracing()
+    if was_tracing:
+        tracemalloc.stop()
+    tracemalloc.start()
+    try:
+        runner(text, lang)
+        _, peak_bytes = tracemalloc.get_traced_memory()
+    finally:
+        tracemalloc.stop()
+        if was_tracing:
+            tracemalloc.start()
+    return peak_bytes
+
+
 def profile_hot_paths(
     *,
     sizes: Iterable[int] = DEFAULT_SIZES,
@@ -170,6 +188,7 @@ def profile_hot_paths(
     iterations: int = 5,
     warmups: int = 1,
     lang: str = "en",
+    measure_memory: bool = True,
 ) -> dict[str, Any]:
     """Profile selected operations and return a JSON-serializable report."""
     sizes_tuple = tuple(sizes)
@@ -200,6 +219,25 @@ def profile_hot_paths(
             p95_ms = percentile(timings_ms, 95)
             mean_ms = statistics.fmean(timings_ms)
             stdev_ms = statistics.pstdev(timings_ms) if len(timings_ms) > 1 else 0.0
+            memory_peaks_kb: list[float] = []
+            if measure_memory:
+                memory_peak_bytes = [
+                    _peak_memory_operation(runner, text, lang)
+                    for _ in range(iterations)
+                ]
+                memory_peaks_kb = [
+                    round(value / 1024, 3) for value in memory_peak_bytes
+                ]
+            memory_p50_kb = (
+                round(percentile(memory_peaks_kb, 50), 3)
+                if memory_peaks_kb
+                else None
+            )
+            memory_p95_kb = (
+                round(percentile(memory_peaks_kb, 95), 3)
+                if memory_peaks_kb
+                else None
+            )
 
             samples.append(
                 {
@@ -217,7 +255,10 @@ def profile_hot_paths(
                     "max_ms": round(max(timings_ms), 3),
                     "chars_per_sec_p50": round(size / (p50_ms / 1000), 1)
                     if p50_ms > 0 else None,
+                    "tracemalloc_peak_kb_p50": memory_p50_kb,
+                    "tracemalloc_peak_kb_p95": memory_p95_kb,
                     "timings_ms": timings_ms,
+                    "tracemalloc_peaks_kb": memory_peaks_kb,
                 }
             )
 
@@ -231,6 +272,11 @@ def profile_hot_paths(
             "processor": platform.processor(),
         },
         "cache_policy": "clear_result_cache_before_each_timed_run",
+        "memory_policy": (
+            "tracemalloc_peak_during_separate_uncached_runs"
+            if measure_memory
+            else "disabled"
+        ),
         "sizes": list(sizes_tuple),
         "operations": list(operations_tuple),
         "samples": samples,
@@ -241,16 +287,21 @@ def _format_table(report: dict[str, Any]) -> str:
     lines = [
         f"TextHumanize {report['version']} hot-path profile",
         f"Cache policy: {report['cache_policy']}",
+        f"Memory policy: {report['memory_policy']}",
         "",
-        f"{'operation':<18} {'chars':>8} {'p50 ms':>10} {'p95 ms':>10} {'chars/s p50':>13}",
-        "-" * 67,
+        f"{'operation':<18} {'chars':>8} {'p50 ms':>10} {'p95 ms':>10} "
+        f"{'chars/s p50':>13} {'peak KB p50':>13}",
+        "-" * 81,
     ]
     for sample in report["samples"]:
         cps = sample["chars_per_sec_p50"]
         cps_text = f"{cps:,.0f}" if isinstance(cps, float) else "-"
+        memory_p50 = sample["tracemalloc_peak_kb_p50"]
+        memory_text = f"{memory_p50:,.1f}" if isinstance(memory_p50, float) else "-"
         lines.append(
             f"{sample['operation']:<18} {sample['actual_chars']:>8,} "
-            f"{sample['p50_ms']:>10.3f} {sample['p95_ms']:>10.3f} {cps_text:>13}"
+            f"{sample['p50_ms']:>10.3f} {sample['p95_ms']:>10.3f} "
+            f"{cps_text:>13} {memory_text:>13}"
         )
     return "\n".join(lines)
 
@@ -278,6 +329,11 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--iterations", type=int, default=5, help="Timed runs per case.")
     parser.add_argument("--warmups", type=int, default=1, help="Warm-up runs per case.")
     parser.add_argument("--lang", default="en", help="Language code for generated samples.")
+    parser.add_argument(
+        "--no-memory",
+        action="store_true",
+        help="Disable tracemalloc peak memory measurements.",
+    )
     parser.add_argument("--json", action="store_true", help="Print JSON instead of a table.")
     parser.add_argument("--output", help="Optional path for the JSON report.")
     return parser
@@ -293,6 +349,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             iterations=args.iterations,
             warmups=args.warmups,
             lang=args.lang,
+            measure_memory=not args.no_memory,
         )
     except ValueError as exc:
         parser.error(str(exc))
