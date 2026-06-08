@@ -446,7 +446,14 @@ class TextHumanizeTest extends TestCase
 
     public function testVersion(): void
     {
-        $this->assertSame('0.28.4', TextHumanize::VERSION);
+        // Validate format and keep the constant in sync with composer.json
+        // so version bumps do not require editing this test.
+        $this->assertMatchesRegularExpression('/^\d+\.\d+\.\d+$/', TextHumanize::VERSION);
+        $composer = json_decode(
+            (string) file_get_contents(__DIR__ . '/../composer.json'),
+            true
+        );
+        $this->assertSame($composer['version'], TextHumanize::VERSION);
     }
 
     // ==================== Integration ====================
