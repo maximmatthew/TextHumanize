@@ -51,6 +51,9 @@ Contributor data examples are packaged as CC0 JSON packs in `texthumanize/data/`
 and exposed through `list_contributor_packs()`, `load_contributor_pack()`, and
 `validate_contributor_pack()`. Use those schemas for AI marker candidates,
 safe synonym replacements, collocation guards, and watermark regression samples.
+For AI markers, `scripts/update_marker_packs.py` scans licensed corpus samples,
+writes a Markdown review table, and merges only rows explicitly marked
+`approved` by a reviewer.
 
 ## Detector Benchmarks
 

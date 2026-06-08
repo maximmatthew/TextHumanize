@@ -9,6 +9,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Licensed eval corpus** — added packaged `text-humanize.eval_corpus.v1` with CC0-licensed synthetic EN/RU/UK samples across `human`, `raw_ai`, `lightly_edited_ai`, and `heavily_edited_ai`, plus `load_eval_corpus()` for release and contributor benchmarks.
 - **Eval corpus indexing** — `load_eval_corpus()` can now filter fixtures by language, label, domain, length bucket, and source, while `index_eval_corpus()` exposes deterministic ids and counts for every fixture dimension.
 - **Contributor JSON packs** — added packaged CC0 examples and public loaders for AI markers, synonyms, collocations, and watermark samples via `list_contributor_packs()`, `load_contributor_pack()`, and `validate_contributor_pack()`.
+- **Marker pack review workflow** — added `scripts/update_marker_packs.py` to extract AI-marker candidates from licensed corpora, write a manual Markdown review table, and merge only reviewer-approved rows into contributor marker packs.
 - **Stronger semantic preservation** — dates, prices, versions, order ids, SKU-like identifiers, exact quotes, and multi-token named entities are now protected by default during humanization.
 - **Detector benchmark corpus** — added offline `detector_benchmark()` and `texthumanize detector-benchmark` for human vs AI vs edited-AI evaluation by language.
 - **CLI quality threshold** — added `--fail-under-quality` for CI workflows that should fail when `quality_score` or benchmark average quality is below a configured threshold.

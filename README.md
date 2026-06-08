@@ -706,6 +706,16 @@ support_synonyms = load_contributor_pack("synonyms", domains=["support"])
 print(support_synonyms["entries"][0]["replacements"])
 ```
 
+```bash
+# Build a manual AI-marker review table from the licensed corpus
+python scripts/update_marker_packs.py \
+  --review-out marker_pack_review.md \
+  --candidates-out marker_pack_candidates.json
+
+# After a reviewer marks rows as approved, merge only those rows
+python scripts/update_marker_packs.py --apply-reviewed marker_pack_review.md
+```
+
 ---
 
 ## 📖 API Reference

@@ -61,6 +61,8 @@ legal, academic, documentation, finance, medical, support, or product copy.
 - Add domain-specific AI-like markers and safe suggested actions.
 - Include at least 5 positive examples and 3 false-positive guard examples.
 - Do not make formal human-written text score worse without reason.
+- Use `python scripts/update_marker_packs.py --review-out marker_pack_review.md`
+  when mining candidates from the licensed eval corpus.
 - Run `validate_contributor_pack("ai_markers")` after JSON edits.
 
 ### Add Low-Risk Replacement Suggestions
