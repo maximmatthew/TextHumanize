@@ -110,10 +110,20 @@ flag rates. The packaged corpus is synthetic, CC0-licensed, and can be
 inspected with `load_eval_corpus(include_metadata=True)`.
 
 ```python
-from texthumanize import detector_benchmark, load_eval_corpus
+from texthumanize import detector_benchmark, index_eval_corpus, load_eval_corpus
 
 corpus = load_eval_corpus(include_metadata=True)
 print(corpus["license"]["id"])
+
+fixtures = load_eval_corpus(
+    languages=["en"],
+    domains=["product"],
+    length_buckets=["300_1000"],
+    sources=["text-humanize-authored-synthetic"],
+)
+print([sample["id"] for sample in fixtures])
+print(index_eval_corpus()["counts"]["domain"])
+
 report = detector_benchmark(languages=["en", "ru", "uk"])
 print(report["overall"])
 print(report["per_language"]["en"]["avg_score_by_label"])

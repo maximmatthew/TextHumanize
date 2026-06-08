@@ -42,7 +42,10 @@ The packaged `text-humanize.eval_corpus.v1` corpus is stored in
 `texthumanize/data/eval_corpus_v1.json`. It contains small CC0-licensed
 synthetic EN/RU/UK samples authored for TextHumanize evaluation, with no
 third-party or customer text. Use `load_eval_corpus(include_metadata=True)` to
-inspect license, provenance, languages, labels, and sample metadata.
+inspect license, provenance, languages, labels, and sample metadata. The loader
+can select fixtures by `languages`, `labels`, `domains`, `length_buckets`, and
+`sources`; `index_eval_corpus()` exposes deterministic sample ids and counts for
+each of those dimensions.
 
 ## Detector Benchmarks
 

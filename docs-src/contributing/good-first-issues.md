@@ -95,6 +95,8 @@ meaning.
 - Add at least 12 examples across `human`, `raw_ai`,
   `lightly_edited_ai`, and `heavily_edited_ai` labels.
 - Include metadata: `lang`, `domain`, `label`, `length_bucket`, `source`.
+- Verify the new samples are discoverable through `index_eval_corpus()` and
+  selectable with `load_eval_corpus()` filters.
 - No private data, copied customer text, or unlicensed third-party text.
 - Benchmark tests should remain deterministic.
 

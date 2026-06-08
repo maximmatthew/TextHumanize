@@ -6,7 +6,11 @@ import time
 import unittest
 
 from texthumanize import detect_ai, humanize
-from texthumanize.benchmarks import detector_benchmark, load_eval_corpus
+from texthumanize.benchmarks import (
+    detector_benchmark,
+    index_eval_corpus,
+    load_eval_corpus,
+)
 
 
 class TestPerformance(unittest.TestCase):
@@ -278,6 +282,47 @@ class TestDetectorBenchmark(unittest.TestCase):
             self.assertEqual(sample["source"], "text-humanize-authored-synthetic")
             self.assertEqual(sample["license"], "CC0-1.0")
             self.assertGreater(len(sample["text"]), 40)
+
+    def test_load_eval_corpus_filters_by_fixture_dimensions(self):
+        """Corpus fixtures can be selected by domain, language, length and source."""
+        samples = load_eval_corpus(
+            languages=["en"],
+            labels=["raw_ai"],
+            domains=["product"],
+            length_buckets=["300_1000"],
+            sources=["text-humanize-authored-synthetic"],
+        )
+        self.assertEqual(len(samples), 1)
+        self.assertEqual(samples[0]["id"], "en_raw_ai_product_001")
+        self.assertEqual(samples[0]["lang"], "en")
+        self.assertEqual(samples[0]["label"], "raw_ai")
+        self.assertEqual(samples[0]["domain"], "product")
+        self.assertEqual(samples[0]["length_bucket"], "300_1000")
+        self.assertEqual(samples[0]["source"], "text-humanize-authored-synthetic")
+
+    def test_index_eval_corpus_groups_by_fixture_dimensions(self):
+        """Corpus index exposes deterministic ids and counts for every dimension."""
+        index = index_eval_corpus()
+        self.assertEqual(index["schema_version"], "text-humanize.eval_corpus_index.v1")
+        self.assertEqual(index["total"], 12)
+        for field in ("lang", "domain", "length_bucket", "source", "label"):
+            self.assertIn(field, index["fields"])
+            self.assertIn(field, index["counts"])
+            self.assertEqual(
+                sum(index["counts"][field].values()),
+                index["total"],
+            )
+        self.assertIn("en_human_support_001", index["fields"]["lang"]["en"])
+        self.assertEqual(index["counts"]["source"]["text-humanize-authored-synthetic"], 12)
+        self.assertEqual(index["counts"]["label"]["raw_ai"], 3)
+
+    def test_detector_benchmark_reports_builtin_corpus_index(self):
+        """Benchmark report includes fixture dimensions for reproducible slicing."""
+        report = detector_benchmark(languages=["en"], include_details=False)
+        index = report["corpus"]["index"]
+        self.assertEqual(index["schema_version"], "text-humanize.eval_corpus_index.v1")
+        self.assertEqual(index["counts"]["lang"]["en"], 4)
+        self.assertIn("support", index["counts"]["domain"])
 
 
 if __name__ == "__main__":

@@ -30,6 +30,13 @@ _DETECTOR_BENCHMARK_LABELS = [
     "lightly_edited_ai",
     "heavily_edited_ai",
 ]
+_EVAL_CORPUS_INDEX_FIELDS = (
+    "lang",
+    "domain",
+    "length_bucket",
+    "source",
+    "label",
+)
 _LABEL_ALIASES = {
     "ai": "raw_ai",
     "edited_ai": "lightly_edited_ai",
@@ -137,6 +144,9 @@ def load_eval_corpus(
     *,
     languages: list[str] | None = None,
     labels: list[str] | None = None,
+    domains: list[str] | None = None,
+    length_buckets: list[str] | None = None,
+    sources: list[str] | None = None,
     include_metadata: bool = False,
 ) -> list[dict[str, Any]] | dict[str, Any]:
     """Load the packaged licensed eval corpus.
@@ -148,6 +158,9 @@ def load_eval_corpus(
     data = _read_eval_corpus_resource()
     wanted_languages = set(languages or [])
     wanted_labels = {_canonical_label(label) for label in labels} if labels else set()
+    wanted_domains = set(domains or [])
+    wanted_length_buckets = set(length_buckets or [])
+    wanted_sources = set(sources or [])
     samples = [
         _normalize_benchmark_sample(sample)
         for sample in data["samples"]
@@ -156,6 +169,12 @@ def load_eval_corpus(
             not wanted_labels
             or _canonical_label(str(sample.get("label", ""))) in wanted_labels
         )
+        and (not wanted_domains or sample.get("domain") in wanted_domains)
+        and (
+            not wanted_length_buckets
+            or sample.get("length_bucket") in wanted_length_buckets
+        )
+        and (not wanted_sources or sample.get("source") in wanted_sources)
     ]
     if not include_metadata:
         return samples
@@ -163,7 +182,61 @@ def load_eval_corpus(
     enriched["samples"] = samples
     enriched["sample_count"] = len(samples)
     enriched["languages"] = sorted({sample["lang"] for sample in samples})
+    enriched["domains"] = sorted({sample["domain"] for sample in samples})
+    enriched["length_buckets"] = sorted({sample["length_bucket"] for sample in samples})
+    enriched["sources"] = sorted({sample["source"] for sample in samples})
+    enriched["index"] = index_eval_corpus(samples)
     return enriched
+
+
+def index_eval_corpus(
+    samples: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """Index eval corpus fixtures by language, domain, length, source and label.
+
+    The returned ``fields`` map stores sample ids for deterministic fixture
+    selection, while ``counts`` gives a compact summary for benchmark reports.
+    """
+    if samples is None:
+        normalized_samples = load_eval_corpus()
+        if not isinstance(normalized_samples, list):
+            raise ValueError("Expected load_eval_corpus() to return a sample list")
+        samples_to_index = normalized_samples
+    else:
+        samples_to_index = [
+            _normalize_benchmark_sample(sample)
+            for sample in samples
+        ]
+
+    fields: dict[str, dict[str, list[str]]] = {
+        field: {}
+        for field in _EVAL_CORPUS_INDEX_FIELDS
+    }
+    for sample in samples_to_index:
+        sample_id = str(sample["id"])
+        for field in _EVAL_CORPUS_INDEX_FIELDS:
+            value = str(sample.get(field, "unknown"))
+            fields[field].setdefault(value, []).append(sample_id)
+
+    fields = {
+        field: {
+            value: sorted(sample_ids)
+            for value, sample_ids in sorted(values.items())
+        }
+        for field, values in fields.items()
+    }
+    return {
+        "schema_version": "text-humanize.eval_corpus_index.v1",
+        "total": len(samples_to_index),
+        "fields": fields,
+        "counts": {
+            field: {
+                value: len(sample_ids)
+                for value, sample_ids in values.items()
+            }
+            for field, values in fields.items()
+        },
+    }
 
 
 def _score_to_label(
@@ -333,6 +406,7 @@ def detector_benchmark(
             "name": corpus_metadata.get("name") if corpus_metadata else None,
             "license": corpus_metadata.get("license") if corpus_metadata else None,
             "sample_count": len(samples),
+            "index": corpus_metadata.get("index") if corpus_metadata else None,
         },
         "overall": {
             "total": total_samples,

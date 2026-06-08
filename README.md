@@ -681,10 +681,19 @@ for segment in report['segments']:
 results = detect_ai_batch(["Text 1", "Text 2", "Text 3"], lang="en")
 
 # Offline detector benchmark: human vs raw/lightly/heavily edited AI
-from texthumanize import detector_benchmark, load_eval_corpus
+from texthumanize import detector_benchmark, index_eval_corpus, load_eval_corpus
 
 corpus = load_eval_corpus(include_metadata=True)
 print(corpus["license"]["id"])  # CC0-1.0
+
+support_fixtures = load_eval_corpus(
+    languages=["en"],
+    domains=["support"],
+    length_buckets=["lt_300"],
+    sources=["text-humanize-authored-synthetic"],
+)
+print([sample["id"] for sample in support_fixtures])
+print(index_eval_corpus()["counts"]["domain"])
 
 report = detector_benchmark(languages=["en", "ru", "uk"])
 print(report["per_language"]["en"]["avg_score_by_label"])

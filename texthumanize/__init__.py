@@ -207,6 +207,7 @@ _LAZY_IMPORTS: dict[str, tuple[str, str]] = {
     "BenchmarkResult": ("texthumanize.benchmark_suite", "BenchmarkResult"),
     "quick_benchmark": ("texthumanize.benchmark_suite", "quick_benchmark"),
     "detector_benchmark": ("texthumanize.benchmarks", "detector_benchmark"),
+    "index_eval_corpus": ("texthumanize.benchmarks", "index_eval_corpus"),
     "load_eval_corpus": ("texthumanize.benchmarks", "load_eval_corpus"),
     # diff_report.py
     "explain_html": ("texthumanize.diff_report", "explain_html"),
@@ -499,6 +500,7 @@ __all__ = [
     "humanize_until_human",
     "humanize_variants",
     "import_markers_from_json",
+    "index_eval_corpus",
     "is_cjk_text",
     "list_ash_presets",
     "list_corpus_profiles",
