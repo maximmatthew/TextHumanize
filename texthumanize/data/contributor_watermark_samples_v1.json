@@ -18,7 +18,7 @@
       "lang": "en",
       "domain": "general",
       "category": "zero_width",
-      "sample_text": "The report is ready\\u200b for review.",
+      "sample_text": "The report is ready\u200b for review.",
       "expected_findings": [
         "zero_width_characters"
       ],
@@ -31,7 +31,7 @@
       "lang": "en",
       "domain": "docs",
       "category": "homoglyph",
-      "sample_text": "The API resp\\u03bfnse includes a request id.",
+      "sample_text": "The API resp\u03bfnse includes a request id.",
       "expected_findings": [
         "homoglyph_substitution"
       ],
@@ -43,10 +43,10 @@
       "id": "wm_en_spacing_001",
       "lang": "en",
       "domain": "support",
-      "category": "spacing",
-      "sample_text": "Please check the attached log.   ",
+      "category": "invisible_char",
+      "sample_text": "Please check the attached\u00ad log.",
       "expected_findings": [
-        "trailing_space_steganography"
+        "zero_width_characters"
       ],
       "safe_clean_text": "Please check the attached log.",
       "source": "text-humanize-authored-synthetic",

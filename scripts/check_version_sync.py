@@ -23,6 +23,32 @@ def _require_contains(file: str, text: str, needle: str) -> None:
         raise RuntimeError(f"{file} does not contain expected release reference: {needle}")
 
 
+# Test files that assert the package version. A version bump must update these
+# too, or CI breaks on a hardcoded-version assertion (this happened on the
+# 0.29.0 release). The guard fails fast when a stale version literal lingers.
+_VERSION_ASSERT_FILES = (
+    ("php/tests/TextHumanizeTest.php", r"VERSION[^\n]*?'(\d+\.\d+\.\d+)'"),
+    ("js/tests/core.test.ts", r"toBe\(\s*'(\d+\.\d+\.\d+)'\s*\)"),
+)
+
+
+def _scan_version_asserts(expected: str) -> list[str]:
+    """Return human-readable problems for stale hardcoded version asserts."""
+    problems: list[str] = []
+    for rel, pattern in _VERSION_ASSERT_FILES:
+        path = ROOT / rel
+        if not path.exists():
+            continue
+        text = path.read_text(encoding="utf-8")
+        for literal in re.findall(pattern, text):
+            if literal != expected:
+                problems.append(
+                    f"{rel}: hardcoded version {literal!r} != current {expected!r}; "
+                    f"sync the assertion with the package version"
+                )
+    return problems
+
+
 def main() -> int:
     pyproject = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
     expected = _extract(r'^version\s*=\s*"([^"]+)"', pyproject, "pyproject.toml")
@@ -87,6 +113,13 @@ def main() -> int:
         _require_contains("README.md", readme, f"TextHumanize v{expected}")
     except RuntimeError as exc:
         print(str(exc))
+        return 1
+
+    assert_problems = _scan_version_asserts(expected)
+    if assert_problems:
+        print("Stale hardcoded version assertions:")
+        for problem in assert_problems:
+            print(f" - {problem}")
         return 1
 
     print(f"Version sync OK: {expected}")

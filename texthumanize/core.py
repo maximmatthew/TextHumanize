@@ -157,6 +157,7 @@ def humanize(
     custom_dict: dict[str, str | list[str]] | None = None,
     quality_gate: str | None = None,
     *,
+    with_quality_score: bool = False,
     auto_evade: bool = False,
     target_ai_score: float = 0.30,
     max_evade_attempts: int = 4,
@@ -345,6 +346,9 @@ def humanize(
     )
     if fast_path_result is not None and not (only_flagged or minimal or phantom):
         fast_path_result = _attach_humanize_explain(fast_path_result, detected_lang)
+        fast_path_result = _maybe_attach_quality(
+            fast_path_result, detected_lang, with_quality_score
+        )
         if seed is not None:
             result_cache.put(
                 text, fast_path_result, lang=detected_lang, profile=profile,
@@ -360,7 +364,10 @@ def humanize(
         selective_result = _humanize_flagged_only(
             text, detected_lang, pipeline, options,
         )
-        return _attach_humanize_explain(selective_result, detected_lang)
+        selective_result = _attach_humanize_explain(selective_result, detected_lang)
+        return _maybe_attach_quality(
+            selective_result, detected_lang, with_quality_score
+        )
 
     result = pipeline.run(text, detected_lang)
 
@@ -441,6 +448,7 @@ def humanize(
             pass  # Grammar cleanup is best-effort
 
     result = _attach_humanize_explain(result, detected_lang)
+    result = _maybe_attach_quality(result, detected_lang, with_quality_score)
 
     # ── Cache result (only deterministic calls with seed) ─────
     if seed is not None:
@@ -1107,6 +1115,41 @@ def _humanize_sentence_report(
         })
 
     return rows
+
+
+def attach_quality_score(
+    result: HumanizeResult,
+    lang: str = "auto",
+    *,
+    fast: bool = True,
+) -> HumanizeResult:
+    """Attach a unified quality score to ``result.metrics_after["quality_score"]``.
+
+    Opt-in: the regular ``humanize()`` path does not run this on every call to
+    keep the hot path cheap. Pass ``with_quality_score=True`` to ``humanize()``
+    or call this helper directly. The score compares the output against the
+    original and is stored in place; the same ``result`` is returned.
+    """
+    resolved_lang = lang if lang != "auto" else (result.lang or "auto")
+    try:
+        report = quality_score_report(
+            result.text,
+            original=result.original,
+            lang=resolved_lang,
+            fast=fast,
+        )
+    except Exception:
+        return result
+    result.metrics_after["quality_score"] = report
+    return result
+
+
+def _maybe_attach_quality(
+    result: HumanizeResult, lang: str, enabled: bool
+) -> HumanizeResult:
+    if not enabled:
+        return result
+    return attach_quality_score(result, lang)
 
 
 def _attach_humanize_explain(result: HumanizeResult, lang: str) -> HumanizeResult:

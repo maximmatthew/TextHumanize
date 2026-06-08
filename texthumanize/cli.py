@@ -1107,6 +1107,37 @@ def _handle_quality_command(args: argparse.Namespace, remaining: list[str]) -> N
     print(json.dumps(report, ensure_ascii=False, indent=2))
 
 
+def _handle_widget_command(args: argparse.Namespace, remaining: list[str]) -> None:
+    """Handle 'widget' subcommand — self-contained AI & watermark audit widget."""
+    from texthumanize.product import audit_widget_html
+
+    widget_input, _ = _subcommand_input_and_json(remaining)
+    text = _read_input(widget_input)
+    print(audit_widget_html(text, lang=args.lang))
+
+
+def _handle_leaderboard_command(args: argparse.Namespace, remaining: list[str]) -> None:
+    """Handle 'leaderboard' subcommand — per language/domain benchmark board."""
+    from texthumanize.quality_metrics import benchmark_leaderboard
+
+    use_markdown = "--markdown" in remaining
+    langs: list[str] | None = None
+    for idx, item in enumerate(remaining):
+        if item == "--langs" and idx + 1 < len(remaining):
+            langs = remaining[idx + 1].split(",")
+        elif item.startswith("--langs="):
+            langs = item.split("=", 1)[1].split(",")
+    board = benchmark_leaderboard(languages=langs)
+    if use_markdown:
+        rows = "\n".join(
+            f"{r['lang']}/{r['domain']}: avg={r['avg_score']:.2f}"
+            for r in board["rows"]
+        )
+        print(rows)
+        return
+    print(json.dumps(board, ensure_ascii=False, indent=2))
+
+
 # ═══════════════════════════════════════════════════════════════
 # MAIN
 # ═══════════════════════════════════════════════════════════════
@@ -1133,6 +1164,8 @@ Examples:
   texthumanize explain input.txt --json
   texthumanize quality input.txt --json
   texthumanize quality output.txt --reference input.txt --json
+  texthumanize widget input.txt > audit.html
+  texthumanize leaderboard --markdown
   texthumanize detect input.txt
   texthumanize detect input.txt --verbose
   texthumanize train --samples 1000 --epochs 30
@@ -1147,7 +1180,8 @@ Examples:
         "input",
         help=(
             "Input file ('-' for stdin), or subcommand: audit, watermark, "
-            "explain, quality, detect, train, benchmark, detector-benchmark"
+            "explain, quality, widget, leaderboard, detect, train, benchmark, "
+            "detector-benchmark"
         ),
     )
     parser.add_argument("-o", "--output", help="Output file (default: stdout)")
@@ -1291,6 +1325,12 @@ Examples:
         return
     if args.input == "quality":
         _handle_quality_command(args, remaining)
+        return
+    if args.input == "widget":
+        _handle_widget_command(args, remaining)
+        return
+    if args.input == "leaderboard":
+        _handle_leaderboard_command(args, remaining)
         return
     if args.input == "train":
         _handle_train_command(args, remaining)

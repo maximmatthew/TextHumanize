@@ -104,6 +104,7 @@ def explain_html(
     show_changes: bool = True,
     elapsed_seconds: float | None = None,
     warnings: list[str] | None = None,
+    include_quality_score: bool = False,
 ) -> str:
     """Render an HTML change report with inline diff.
 
@@ -111,6 +112,9 @@ def explain_html(
         result: A ``HumanizeResult`` from ``humanize()``.
         title: Page title.
         show_changes: Include the per-change breakdown table.
+        include_quality_score: Add a unified TextHumanize Quality Score badge
+            (grade + composite) computed from the result. Off by default since
+            it runs the detector.
 
     Returns:
         A self-contained HTML string.
@@ -125,11 +129,27 @@ def explain_html(
         include_text=False,
     )
     summary = report["summary"]
+    quality_badge = ""
+    quality_meta = result.metrics_after.get("quality_score") if result.metrics_after else None
+    if include_quality_score and not quality_meta:
+        try:
+            from texthumanize.core import quality_score_report
+            quality_meta = quality_score_report(
+                result.text, original=result.original, lang=result.lang, fast=True
+            )
+        except Exception:
+            quality_meta = None
+    if quality_meta:
+        quality_badge = (
+            f"Quality Score: <b>{esc(str(quality_meta.get('grade', '?')))} "
+            f"({float(quality_meta.get('score', 0.0)) * 100:.0f}/100)</b> &middot; "
+        )
     meta = (
         f"Language: <b>{esc(result.lang)}</b> &middot; "
         f"Profile: <b>{esc(result.profile)}</b> &middot; "
         f"Intensity: <b>{result.intensity}</b> &middot; "
         f"Change ratio: <b>{result.change_ratio:.1%}</b> &middot; "
+        f"{quality_badge}"
         f"Quality: <b>{summary['quality_score']:.2f}</b> &middot; "
         f"Similarity: <b>{summary['similarity']:.2f}</b>"
     )

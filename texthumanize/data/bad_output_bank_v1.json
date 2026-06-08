@@ -1,0 +1,81 @@
+{
+  "schema_version": "text-humanize.bad_output_bank.v1",
+  "name": "TextHumanize bad-output regression bank",
+  "license": {
+    "id": "CC0-1.0",
+    "name": "Creative Commons Zero 1.0 Universal"
+  },
+  "description": "Known-bad humanization outcomes turned into permanent regression tests. Add a new entry whenever an issue or Promopilot case reveals a defect, then the test suite enforces the fix forever.",
+  "contribution_rules": [
+    "Use synthetic or fully anonymized text only; never include customer data.",
+    "Describe the original defect and pick deterministic checks.",
+    "Set a seed so the regression is reproducible."
+  ],
+  "entries": [
+    {
+      "id": "bob_en_brand_url_001",
+      "origin": "synthetic",
+      "lang": "en",
+      "seed": 7,
+      "intensity": 70,
+      "profile": "marketing",
+      "input": "Acme Cloud helps teams ship faster. Read the guide at https://acme.example.com/docs and contact support@acme.example.com for help.",
+      "preserve": { "brand_terms": ["Acme Cloud"] },
+      "checks": [
+        { "type": "preserve_token", "value": "Acme Cloud" },
+        { "type": "preserve_token", "value": "https://acme.example.com/docs" },
+        { "type": "preserve_token", "value": "support@acme.example.com" }
+      ],
+      "description": "Brand name, URL and email must survive marketing humanization."
+    },
+    {
+      "id": "bob_en_numbers_order_001",
+      "origin": "synthetic",
+      "lang": "en",
+      "seed": 11,
+      "intensity": 65,
+      "profile": "support_reply",
+      "input": "Your order ORD-8421 for $49.99 shipped on 2026-06-01 with tracking SKU-THZ-2026.",
+      "preserve": {},
+      "checks": [
+        { "type": "preserve_token", "value": "ORD-8421" },
+        { "type": "preserve_token", "value": "$49.99" },
+        { "type": "preserve_token", "value": "2026-06-01" },
+        { "type": "preserve_token", "value": "SKU-THZ-2026" }
+      ],
+      "description": "Identifiers, prices and dates must not be rewritten in support copy."
+    },
+    {
+      "id": "bob_ru_leak_001",
+      "origin": "synthetic",
+      "lang": "ru",
+      "seed": 3,
+      "intensity": 60,
+      "profile": "web",
+      "input": "Наша команда выпускает обновление продукта на следующей неделе. Документация доступна на сайте.",
+      "preserve": {},
+      "checks": [
+        { "type": "absent", "value": "Furthermore" },
+        { "type": "absent", "value": "Moreover" },
+        { "type": "absent", "value": "the the" }
+      ],
+      "description": "Russian humanization must not leak English connectors or duplicate articles."
+    },
+    {
+      "id": "bob_en_no_double_punct_001",
+      "origin": "synthetic",
+      "lang": "en",
+      "seed": 5,
+      "intensity": 80,
+      "profile": "social",
+      "input": "This launch is huge. We are excited to share it with everyone today.",
+      "preserve": {},
+      "checks": [
+        { "type": "absent", "value": "!!!" },
+        { "type": "absent", "value": "??" },
+        { "type": "absent", "value": "  " }
+      ],
+      "description": "High-intensity social humanization must not stack punctuation or double spaces."
+    }
+  ]
+}

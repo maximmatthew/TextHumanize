@@ -40,7 +40,7 @@ import sys as _sys
 import types as _types
 from typing import Any
 
-__version__ = "0.29.0"
+__version__ = "0.30.0"
 __author__ = "TextHumanize Contributors"
 __license__ = "Personal Use Only"
 
@@ -81,6 +81,7 @@ _LAZY_IMPORTS: dict[str, tuple[str, str]] = {
     "detect_ai_explain": ("texthumanize.core", "detect_ai_explain"),
     "audit_report": ("texthumanize.core", "audit_report"),
     "quality_score_report": ("texthumanize.core", "quality_score_report"),
+    "attach_quality_score": ("texthumanize.core", "attach_quality_score"),
     "build_author_profile": ("texthumanize.core", "build_author_profile"),
     "compare_fingerprint": ("texthumanize.core", "compare_fingerprint"),
     "detect_ab": ("texthumanize.core", "detect_ab"),
@@ -223,6 +224,25 @@ _LAZY_IMPORTS: dict[str, tuple[str, str]] = {
         "texthumanize.contributor_packs",
         "validate_contributor_pack",
     ),
+    # bad_output_bank.py
+    "load_bad_output_bank": ("texthumanize.bad_output_bank", "load_bad_output_bank"),
+    "validate_bad_output_bank": ("texthumanize.bad_output_bank", "validate_bad_output_bank"),
+    # quality_metrics.py
+    "benchmark_leaderboard": ("texthumanize.quality_metrics", "benchmark_leaderboard"),
+    "release_snapshot": ("texthumanize.quality_metrics", "release_snapshot"),
+    "acceptance_rate": ("texthumanize.quality_metrics", "acceptance_rate"),
+    "semantic_drift_rate": ("texthumanize.quality_metrics", "semantic_drift_rate"),
+    "watermark_eval": ("texthumanize.quality_metrics", "watermark_eval"),
+    "count_regression_examples": ("texthumanize.quality_metrics", "count_regression_examples"),
+    "funnel_metrics": ("texthumanize.quality_metrics", "funnel_metrics"),
+    # product.py
+    "audit_widget_html": ("texthumanize.product", "audit_widget_html"),
+    "audit_batch": ("texthumanize.product", "audit_batch"),
+    "compare_versions": ("texthumanize.product", "compare_versions"),
+    "content_plan_risk": ("texthumanize.product", "content_plan_risk"),
+    "make_brand_voice": ("texthumanize.product", "make_brand_voice"),
+    "brand_voice_lock": ("texthumanize.product", "brand_voice_lock"),
+    "client_report_html": ("texthumanize.product", "client_report_html"),
     # diff_report.py
     "explain_html": ("texthumanize.diff_report", "explain_html"),
     "explain_json_patch": ("texthumanize.diff_report", "explain_json_patch"),
@@ -468,6 +488,23 @@ __all__ = [
     "best_synonym_in_context",
     "build_author_profile",
     "audit_report",
+    "attach_quality_score",
+    "acceptance_rate",
+    "audit_batch",
+    "audit_widget_html",
+    "benchmark_leaderboard",
+    "brand_voice_lock",
+    "client_report_html",
+    "compare_versions",
+    "content_plan_risk",
+    "count_regression_examples",
+    "funnel_metrics",
+    "load_bad_output_bank",
+    "make_brand_voice",
+    "release_snapshot",
+    "semantic_drift_rate",
+    "validate_bad_output_bank",
+    "watermark_eval",
     "check_grammar",
     "check_originality",
     "clean_safe",

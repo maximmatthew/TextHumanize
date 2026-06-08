@@ -5,6 +5,22 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.30.0] - 2026-06-08
+
+### Added
+- **Promopilot product layer** (`texthumanize.product`) — `audit_widget_html()` (self-contained paste-text audit widget), `audit_batch()` (bulk detector/watermark/readability/quality over many pages), `compare_versions()` (original / AI draft / humanized / editor-final scoring), `content_plan_risk()` (pre-publication publish/review/block gate), `make_brand_voice()` + `brand_voice_lock()` (lock brand terms during humanization), and `client_report_html()` (neutral, print-ready client report).
+- **Quality & release metrics** (`texthumanize.quality_metrics`) — `benchmark_leaderboard()` (per language/domain board), `release_snapshot()` (before/after detector, watermark, similarity, readability, quality and latency p50/p95), `acceptance_rate()`, `semantic_drift_rate()`, `watermark_eval()` (Unicode/statistical false positive/negative), `count_regression_examples()`, and `funnel_metrics()` (audit → humanize → export → publish).
+- **Bad-output regression bank** — packaged `text-humanize.bad_output_bank.v1` plus `load_bad_output_bank()` / `validate_bad_output_bank()`; every known-bad case becomes a permanent parametrized regression test.
+- **Quality score in reports** — `humanize(..., with_quality_score=True)` attaches the unified score to `metrics_after["quality_score"]`, `attach_quality_score()` does it on demand, and `explain_html(..., include_quality_score=True)` shows a grade badge.
+- **CLI** — `texthumanize widget` (audit widget HTML) and `texthumanize leaderboard` (JSON/Markdown board).
+- **Release tooling** — `scripts/build_leaderboard.py`, `scripts/release_snapshot.py`, and `scripts/dev_check.py` (fast offline pre-release guard).
+
+### Changed
+- **Version-assert guard** — `scripts/check_version_sync.py` now fails when a PHP/JS test hardcodes a version that no longer matches the package, so release bumps cannot break CI on a stale assertion.
+
+### Fixed
+- **Watermark sample fixtures** — the packaged watermark contributor samples were double-escaped (`\\u200b`) and therefore not real watermarks; they now contain genuine zero-width, homoglyph and invisible characters that the detector flags.
+
 ## [0.29.0] - 2026-06-08
 
 ### Added

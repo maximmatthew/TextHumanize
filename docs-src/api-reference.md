@@ -99,6 +99,52 @@ texthumanize quality output.txt --reference input.txt --json
 texthumanize input.txt --quality-score
 ```
 
+### Product layer (`texthumanize.product`)
+
+Higher-level building blocks for content products and integrations:
+
+```python
+from texthumanize import (
+    audit_widget_html, audit_batch, compare_versions, content_plan_risk,
+    make_brand_voice, brand_voice_lock, client_report_html,
+)
+
+# Paste-text audit widget (self-contained HTML)
+html = audit_widget_html("Furthermore, it is important to note...", lang="en")
+
+# Bulk audit of many pages (fetch text upstream, pass it in)
+board = audit_batch([{"id": "p1", "url": "https://x", "text": "..."}], lang="en")
+
+# Compare versions: original / AI draft / humanized / editor final
+diff = compare_versions({"original": "...", "humanized": "..."}, lang="en")
+
+# Pre-publication gate: publish / review / block per item
+plan = content_plan_risk(["text 1", "text 2"], lang="en")
+
+# Brand voice lock — keep important terms verbatim while humanizing
+brand = make_brand_voice("Acme Cloud", locked_terms=["Acme Cloud"], tone="founder")
+locked = brand_voice_lock("Acme Cloud helps teams ship...", brand, lang="en")
+
+# Neutral, print-ready client report (no detector-bypass claims)
+report_html = client_report_html("...", original="...", lang="en")
+```
+
+### Quality & release metrics (`texthumanize.quality_metrics`)
+
+```python
+from texthumanize import (
+    benchmark_leaderboard, release_snapshot, acceptance_rate,
+    semantic_drift_rate, watermark_eval, count_regression_examples, funnel_metrics,
+)
+
+board = benchmark_leaderboard(languages=["en", "ru", "uk"])  # per language/domain
+snapshot = release_snapshot(lang="en")                        # before/after + latency p50/p95
+watermark_eval()                                              # Unicode/statistical FP/FN
+```
+
+CLI helpers: `texthumanize widget input.txt > audit.html`, `texthumanize leaderboard --markdown`,
+plus `scripts/build_leaderboard.py`, `scripts/release_snapshot.py`, and `scripts/dev_check.py`.
+
 ### `analyze(text, lang)`
 
 Get text analysis report.

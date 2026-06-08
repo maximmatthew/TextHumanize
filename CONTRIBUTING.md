@@ -45,6 +45,22 @@ ruff format --check texthumanize/ tests/
 mypy texthumanize/ --ignore-missing-imports
 ```
 
+## Fast Pre-Release Check
+
+Some sandboxes hang the PHP/JS/`mypy`/full-`pytest` runners (process spawn or
+esbuild platform-binary issues — not your change). When local runners stall,
+run the dependency-free guard for a quick sanity pass in a couple of seconds:
+
+```bash
+python scripts/dev_check.py        # version sync, version-assert scan, quality rounding, fixtures
+python scripts/check_version_sync.py
+```
+
+The authoritative gate is always GitHub CI (Python 3.9–3.13, PHP 8.1–8.3,
+Node 20). `check_version_sync.py` also fails if a test file hardcodes a version
+that no longer matches the package, so a release bump can no longer break CI on
+a stale `assertSame`/`toBe` assertion.
+
 ## Project Structure
 
 ```

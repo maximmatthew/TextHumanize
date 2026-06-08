@@ -76,7 +76,7 @@ readability, and internal risk signals; it is not a bypass guarantee.
 - [Responsible Use](#-responsible-use)
 - [For Business & Enterprise](#-for-business--enterprise)
 - [FAQ & Troubleshooting](#-faq--troubleshooting)
-- [What's New in v0.29.0](#-whats-new-in-v0290)
+- [What's New in v0.30.0](#-whats-new-in-v0300)
 - [Contributing](#-contributing)
 - [Limitations](#-limitations)
 - [Support the Project](#-support-the-project)
@@ -194,7 +194,7 @@ git clone https://github.com/ksanyok/TextHumanize.git
 cd TextHumanize && pip install -e .
 ```
 
-> **Tip:** Pin your version for production: `pip install texthumanize==0.29.0`
+> **Tip:** Pin your version for production: `pip install texthumanize==0.30.0`
 
 <details>
 <summary><b>PHP / TypeScript</b></summary>
@@ -1456,7 +1456,7 @@ reporting rules, and detector limitations.
 
 ```
 ┌──────────────────────────────────────────────────────────┐
-│  TextHumanize v0.29.0 — AI Score Benchmark              │
+│  TextHumanize v0.30.0 — AI Score Benchmark              │
 ├──────────────────────────────────────────────────────────┤
 │  EN (web/50):    94% → 27%    (reduction: -67pp)        │
 │  EN (web/60):    94% → 23%    (reduction: -71pp)        │
@@ -1848,7 +1848,14 @@ Try the [Live Demo](https://texthumanize.link/). For local use, the REST API + S
 
 ---
 
-## 🆕 What's New in v0.29.0
+## 🆕 What's New in v0.30.0
+
+### Product layer, public metrics, and a regression bank (0.30.0)
+- **Promopilot product layer** (`texthumanize.product`) — `audit_widget_html()` (paste-text audit widget), `audit_batch()` (bulk page audit), `compare_versions()` (original/AI/humanized/editor), `content_plan_risk()` (publish/review/block gate), `make_brand_voice()` + `brand_voice_lock()` (lock brand terms), and `client_report_html()` (neutral, print-ready report).
+- **Quality & release metrics** (`texthumanize.quality_metrics`) — `benchmark_leaderboard()`, `release_snapshot()` (before/after + latency p50/p95), `acceptance_rate()`, `semantic_drift_rate()`, `watermark_eval()`, `count_regression_examples()`, and `funnel_metrics()`.
+- **Bad-output regression bank** — `load_bad_output_bank()` turns every known-bad case into a permanent regression test.
+- **Quality score everywhere** — `humanize(..., with_quality_score=True)`, `attach_quality_score()`, the `explain_html(..., include_quality_score=True)` badge, and the new `texthumanize widget` / `texthumanize leaderboard` CLI commands.
+- **Release hardening** — `check_version_sync.py` now blocks stale hardcoded version assertions, `scripts/dev_check.py` gives a fast offline pre-release check, and the packaged watermark fixtures are now real (not double-escaped).
 
 ### Unified quality scoring, eval corpus, and contributor packs (0.29.0)
 - **Unified TextHumanize Quality Score** — `quality_score_report()` (plus `texthumanize quality` and `--quality-score`) returns one explainable score (0..1) and a letter grade across seven dimensions: semantic similarity, naturalness, readability, AI-pattern resistance, watermark cleanliness, edit balance, and processing speed, with strengths, weaknesses, and recommendations.
