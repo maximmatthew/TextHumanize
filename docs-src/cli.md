@@ -65,7 +65,7 @@ texthumanize benchmark -l en --json
 $ texthumanize benchmark -l en
 
 ============================================================
-  TextHumanize Benchmark — v0.28.4
+  TextHumanize Benchmark — v0.31.0
   Language: en
 ============================================================
 

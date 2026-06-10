@@ -311,7 +311,7 @@ npm install
 
 ```python
 import texthumanize
-print(texthumanize.__version__)  # 0.28.4
+print(texthumanize.__version__)  # 0.31.0
 ```
 
 ### Updating to latest version
@@ -323,7 +323,7 @@ print(texthumanize.__version__)  # 0.28.4
 pip install --upgrade texthumanize
 
 # Update to specific version
-pip install texthumanize>=0.28.4
+pip install texthumanize>=0.31.0
 ```
 
 #### From source (GitHub)
@@ -366,15 +366,15 @@ npm install && npm run build
 
 ```bash
 # Python — install directly from a GitHub release tag
-pip install git+https://github.com/ksanyok/TextHumanize.git@v0.28.4
+pip install git+https://github.com/ksanyok/TextHumanize.git@v0.31.0
 
 # Or download a release archive
-pip install https://github.com/ksanyok/TextHumanize/archive/refs/tags/v0.28.4.tar.gz
+pip install https://github.com/ksanyok/TextHumanize/archive/refs/tags/v0.31.0.tar.gz
 ```
 
 > **Tip:** Pin your version in `requirements.txt` for reproducible builds:
 > ```
-> texthumanize @ git+https://github.com/ksanyok/TextHumanize.git@v0.28.4
+> texthumanize @ git+https://github.com/ksanyok/TextHumanize.git@v0.31.0
 > ```
 
 ---

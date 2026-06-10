@@ -23,12 +23,12 @@ Use this checklist before publishing a TextHumanize release to PyPI and Packagis
 
 - [ ] Commit release changes.
 - [ ] Push `main`.
-- [ ] Create and push a matching tag, for example `v0.28.4`.
+- [ ] Create and push a matching tag, for example `v0.31.0`.
 - [ ] Create a GitHub release from the tag.
 - [ ] Confirm the Publish to PyPI workflow succeeds.
 - [ ] Confirm Packagist auto-update picked up the new tag.
 - [ ] Verify install commands:
-  - `pip install texthumanize==0.28.4`
+  - `pip install texthumanize==0.31.0`
   - `composer require ksanyok/text-humanize:^0.28`
 
 ## Post-Release
