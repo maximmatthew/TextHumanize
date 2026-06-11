@@ -145,6 +145,39 @@ watermark_eval()                                              # Unicode/statisti
 CLI helpers: `texthumanize widget input.txt > audit.html`, `texthumanize leaderboard --markdown`,
 plus `scripts/build_leaderboard.py`, `scripts/release_snapshot.py`, and `scripts/dev_check.py`.
 
+### Media watermark forensics (`texthumanize.media_watermark`)
+
+Inspect **images, audio and video** for AI-watermark and provenance signals, and
+strip the removable ones. Pure-Python + numpy (Pillow optional for image LSB
+analysis), fully offline.
+
+```python
+from texthumanize import detect_media_watermarks, clean_media_watermarks
+
+report = detect_media_watermarks("image.png")          # path or bytes
+report["format"]            # png | jpeg | webp | wav | mp4 | ...
+report["has_watermarks"]    # bool
+report["findings"]          # C2PA, XMP, EXIF, generator signatures, stego/spectral
+report["removable"]         # whether clean_media_watermarks can strip in place
+
+# Strip provenance/metadata and re-serialise (PNG/JPEG/WebP/WAV)
+result = clean_media_watermarks("image.png", output="clean.png")
+result["bytes_removed"], result["changed"]
+```
+
+Detects: C2PA / CAI manifests, XMP `digitalSourceType` / `trainedAlgorithmicMedia`,
+EXIF `Software`/`Make`, embedded generation parameters (Stable Diffusion, ComfyUI…),
+and generator signatures (Midjourney, DALL·E, Firefly, Suno, Sora, …), plus image
+LSB-steganography and audio out-of-band/ultrasonic anomalies.
+
+**Honest limits:** this covers *inspectable* metadata and statistical signals. It
+**cannot** detect or remove robust in-content neural watermarks such as Google
+**SynthID** — those are embedded in the pixels/samples and survive metadata
+stripping and re-encoding. For MP4/MKV, removal returns an `ffmpeg -map_metadata -1`
+recipe instead of an unsafe in-place rewrite.
+
+CLI: `texthumanize media image.png` · `texthumanize media image.png --clean -o clean.png`
+
 ### `analyze(text, lang)`
 
 Get text analysis report.

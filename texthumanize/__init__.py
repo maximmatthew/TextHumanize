@@ -40,7 +40,7 @@ import sys as _sys
 import types as _types
 from typing import Any
 
-__version__ = "0.32.0"
+__version__ = "0.33.0"
 __author__ = "TextHumanize Contributors"
 __license__ = "Personal Use Only"
 
@@ -97,6 +97,11 @@ _LAZY_IMPORTS: dict[str, tuple[str, str]] = {
     "watermark_report_batch": ("texthumanize.core", "watermark_report_batch"),
     "clean_safe": ("texthumanize.core", "clean_safe"),
     "neutralise_aggressive": ("texthumanize.core", "neutralise_aggressive"),
+    # media_watermark.py — image/audio/video provenance & watermark forensics
+    "detect_media_watermarks": ("texthumanize.media_watermark", "detect_media_watermarks"),
+    "clean_media_watermarks": ("texthumanize.media_watermark", "clean_media_watermarks"),
+    "media_watermark_report": ("texthumanize.media_watermark", "media_watermark_report"),
+    "media_format": ("texthumanize.media_watermark", "media_format"),
     "spin": ("texthumanize.core", "spin"),
     "spin_variants": ("texthumanize.core", "spin_variants"),
     "analyze_coherence": ("texthumanize.core", "analyze_coherence"),
@@ -503,6 +508,10 @@ __all__ = [
     "funnel_metrics",
     "load_bad_output_bank",
     "make_brand_voice",
+    "detect_media_watermarks",
+    "clean_media_watermarks",
+    "media_watermark_report",
+    "media_format",
     "release_snapshot",
     "semantic_drift_rate",
     "validate_bad_output_bank",

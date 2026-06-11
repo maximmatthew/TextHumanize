@@ -1116,6 +1116,36 @@ def _handle_widget_command(args: argparse.Namespace, remaining: list[str]) -> No
     print(audit_widget_html(text, lang=args.lang))
 
 
+def _handle_media_command(args: argparse.Namespace, remaining: list[str]) -> None:
+    """Handle 'media' subcommand — image/audio/video watermark forensics.
+
+    Usage:
+        texthumanize media file.png
+        texthumanize media file.png --clean -o cleaned.png
+    """
+    from texthumanize.media_watermark import (
+        clean_media_watermarks,
+        detect_media_watermarks,
+    )
+
+    do_clean = "--clean" in remaining
+    out_path = getattr(args, "output", None)
+    media_input = next(
+        (item for item in remaining if not item.startswith("-")),
+        None,
+    )
+    if not media_input:
+        print(json.dumps({"ok": False, "error": "Provide a media file path"}))
+        return
+    report = detect_media_watermarks(media_input)
+    if do_clean:
+        result = clean_media_watermarks(media_input, output=out_path)
+        report["clean"] = {k: v for k, v in result.items() if k != "bytes"}
+        if out_path and result["changed"]:
+            report["clean"]["written_to"] = out_path
+    print(json.dumps(report, ensure_ascii=False, indent=2))
+
+
 def _handle_leaderboard_command(args: argparse.Namespace, remaining: list[str]) -> None:
     """Handle 'leaderboard' subcommand — per language/domain benchmark board."""
     from texthumanize.quality_metrics import benchmark_leaderboard
@@ -1166,6 +1196,8 @@ Examples:
   texthumanize quality output.txt --reference input.txt --json
   texthumanize widget input.txt > audit.html
   texthumanize leaderboard --markdown
+  texthumanize media image.png
+  texthumanize media image.png --clean -o cleaned.png
   texthumanize detect input.txt
   texthumanize detect input.txt --verbose
   texthumanize train --samples 1000 --epochs 30
@@ -1331,6 +1363,9 @@ Examples:
         return
     if args.input == "leaderboard":
         _handle_leaderboard_command(args, remaining)
+        return
+    if args.input in ("media", "media-watermark"):
+        _handle_media_command(args, remaining)
         return
     if args.input == "train":
         _handle_train_command(args, remaining)

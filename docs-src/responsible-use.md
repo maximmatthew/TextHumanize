@@ -60,6 +60,24 @@ Use these tools for your own content, authorized audits, copy/paste hygiene,
 malware-resistant text cleanup, and compliance workflows. Do not remove
 provenance or attribution signals from content you do not control.
 
+## Media Watermark Forensics (images / audio / video)
+
+`detect_media_watermarks()` and `clean_media_watermarks()` apply the same
+honest, forensics-first posture to media files:
+
+- Detection covers **inspectable** signals only: C2PA / CAI manifests, XMP /
+  EXIF provenance, embedded generation parameters, generator signatures, and
+  basic LSB / spectral anomalies.
+- It **cannot** detect or remove robust in-content neural watermarks such as
+  Google **SynthID**. Those are embedded in the pixels or audio samples and are
+  specifically designed to survive metadata stripping and re-encoding. Do not
+  treat a clean report as proof that media is unwatermarked or human-made.
+- Removal strips metadata/provenance (a standard privacy operation). Do **not**
+  strip C2PA Content Credentials or attribution from media you do not own in
+  order to misrepresent its origin — that defeats transparency efforts and may
+  violate platform rules or law. Use it for your own files, authorized audits,
+  and metadata-privacy hygiene.
+
 ## Integration Safeguards
 
 For production integrations:

@@ -5,6 +5,16 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.33.0] - 2026-06-12
+
+### Added
+- **Media watermark forensics** (`texthumanize.media_watermark`) — a new pure-Python (numpy; Pillow optional), offline engine that detects and removes AI-watermark and provenance signals in **images, audio and video**:
+  - `detect_media_watermarks(source)` / `media_watermark_report(source)` — parses PNG/JPEG/WebP/GIF/WAV/MP3/FLAC/MP4/MKV for C2PA / CAI manifests, XMP (`digitalSourceType`, `trainedAlgorithmicMedia`), EXIF `Software`/`Make`, embedded generation parameters (Stable Diffusion, ComfyUI…), and generator signatures (Midjourney, DALL·E, Firefly, Leonardo, NovelAI, Suno, Sora, …); plus image LSB-steganography and audio out-of-band/ultrasonic anomaly probes.
+  - `clean_media_watermarks(source, output=...)` — strips provenance/metadata and re-serialises PNG/JPEG/WebP/WAV; for MP4/MKV it returns a safe `ffmpeg -map_metadata -1` recipe rather than an unsafe in-place rewrite.
+  - `media_format(bytes)` — magic-byte format detection.
+  - CLI: `texthumanize media <file>` and `texthumanize media <file> --clean -o <out>`.
+  - **Honest scope:** covers inspectable metadata and statistical signals; it cannot detect or remove robust in-content neural watermarks such as Google SynthID, which survive metadata stripping.
+
 ## [0.32.0] - 2026-06-11
 
 ### Added

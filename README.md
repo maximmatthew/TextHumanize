@@ -18,15 +18,19 @@ readability, and internal risk signals; it is not a bypass guarantee.
 [![PHP 8.1+](https://img.shields.io/badge/php-8.1+-777BB4.svg?logo=php&logoColor=white)](https://www.php.net/)
 &nbsp;&nbsp;
 [![CI](https://github.com/ksanyok/TextHumanize/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/ksanyok/TextHumanize/actions/workflows/ci.yml)
-[![Tests](https://img.shields.io/badge/tests-2257%20passed-2ea44f.svg?logo=pytest&logoColor=white)](https://github.com/ksanyok/TextHumanize/actions/workflows/ci.yml)
+[![Tests](https://img.shields.io/badge/tests-2269
+0
+41%20passed-2ea44f.svg?logo=pytest&logoColor=white)](https://github.com/ksanyok/TextHumanize/actions/workflows/ci.yml)
 &nbsp;&nbsp;
 [![Zero Dependencies](https://img.shields.io/badge/dependencies-zero-brightgreen.svg)]()
-[![PyPI](https://img.shields.io/badge/pypi-v0.32.0-3775A9.svg?logo=pypi&logoColor=white)](https://pypi.org/project/texthumanize/)
+[![PyPI](https://img.shields.io/badge/pypi-v0.33.0-3775A9.svg?logo=pypi&logoColor=white)](https://pypi.org/project/texthumanize/)
 [![License](https://img.shields.io/badge/license-Dual%20(Free%20%2B%20Commercial)-blue.svg)](LICENSE)
 
 <br/>
 
-**240,000+ lines of code** · **130 Python modules** · **38-stage pipeline** · **25 languages + universal** · **2,257 tests**
+**240,000+ lines of code** · **131 Python modules** · **38-stage pipeline** · **25 languages + universal** · **2,269
+0
+41 tests**
 
 **3 proprietary technologies:** PHANTOM™ (gradient-guided internal score optimization) · ASH™ (adaptive signature humanization) · SentenceValidator™ (interstage quality gate)
 
@@ -76,7 +80,7 @@ readability, and internal risk signals; it is not a bypass guarantee.
 - [Responsible Use](#-responsible-use)
 - [For Business & Enterprise](#-for-business--enterprise)
 - [FAQ & Troubleshooting](#-faq--troubleshooting)
-- [What's New in v0.32.0](#-whats-new-in-v0320)
+- [What's New in v0.33.0](#-whats-new-in-v0330)
 - [Contributing](#-contributing)
 - [Limitations](#-limitations)
 - [Support the Project](#-support-the-project)
@@ -90,7 +94,7 @@ TextHumanize is a **pure-algorithmic text processing engine** that transforms AI
 
 **Built-in toolkit:** AI Detection (3 detectors) · Paraphrasing · Tone Analysis · Watermark Cleaning · Content Spinning · Coherence Analysis · Readability Scoring · Stylistic Fingerprinting · Auto-Tuner · Perplexity Analysis · Plagiarism Detection · Grammar Check · Morphology Engine · Neural LM · **Async API** · **SSE Streaming**
 
-**Platforms:** Python (full — 130 modules) · TypeScript/JavaScript (core) · PHP (full)
+**Platforms:** Python (full — 131 modules) · TypeScript/JavaScript (core) · PHP (full)
 
 **For business:** SaaS integration · REST API with SSE streaming · Docker deployment · Bulk processing · Custom dictionaries · On-prem enterprise · White-label ready
 
@@ -194,7 +198,7 @@ git clone https://github.com/ksanyok/TextHumanize.git
 cd TextHumanize && pip install -e .
 ```
 
-> **Tip:** Pin your version for production: `pip install texthumanize==0.32.0`
+> **Tip:** Pin your version for production: `pip install texthumanize==0.33.0`
 
 <details>
 <summary><b>PHP / TypeScript</b></summary>
@@ -284,6 +288,8 @@ from texthumanize import (
     # NLP tools
     paraphrase, analyze_tone, adjust_tone,
     detect_watermarks, clean_watermarks, watermark_report,
+    # Media (image/audio/video) watermark & provenance forensics
+    detect_media_watermarks, clean_media_watermarks,
     spin, spin_variants,
     analyze_coherence, full_readability,
     # Advanced
@@ -801,6 +807,8 @@ results = humanize_sentences(text, lang="en")
 | `detect_ai_explain(text, lang)` | Explainable AI detector report with spans and suggested actions |
 | `audit_report(text, lang)` | Combined AI + watermark audit JSON |
 | `quality_score_report(text, original=None, lang)` | Unified Quality Score (0..1 + letter grade) across 7 dimensions |
+| `detect_media_watermarks(path_or_bytes)` | Image/audio/video AI-watermark & provenance audit (C2PA, generator signatures, stego) |
+| `clean_media_watermarks(path_or_bytes, output=...)` | Strip provenance/metadata from PNG/JPEG/WebP/WAV (honest about neural watermarks) |
 | `detect_watermarks(text)` | Detect 6 types of invisible watermarks |
 | `clean_watermarks(text)` | Remove all detected watermarks |
 | `watermark_report(text, lang)` | Unified Unicode + statistical watermark report |
@@ -1456,7 +1464,7 @@ reporting rules, and detector limitations.
 
 ```
 ┌──────────────────────────────────────────────────────────┐
-│  TextHumanize v0.32.0 — AI Score Benchmark              │
+│  TextHumanize v0.33.0 — AI Score Benchmark              │
 ├──────────────────────────────────────────────────────────┤
 │  EN (web/50):    94% → 27%    (reduction: -67pp)        │
 │  EN (web/60):    94% → 23%    (reduction: -71pp)        │
@@ -1496,7 +1504,7 @@ reporting rules, and detector limitations.
 ## 🏗️ Architecture
 
 ```
-texthumanize/                        # 130 Python modules, 240,000+ lines
+texthumanize/                        # 131 Python modules, 240,000+ lines
 ├── core.py                          # Facade: 28+ public functions (2,391 lines)
 ├── pipeline.py                      # 38-stage pipeline + adaptive intensity (1,553 lines)
 ├── sentence_validator.py            # SentenceValidator™: interstage quality gate (350 lines)
@@ -1773,7 +1781,7 @@ See the full [Responsible Use guide](https://ksanyok.github.io/TextHumanize/resp
 | **Privacy** | 100% local. Zero network calls. No data leaves your server |
 | **Auditability** | Every call returns `change_ratio`, `quality_score`, `similarity`, `explain()` report |
 | **Integration** | Python SDK · JS SDK · PHP SDK · CLI · REST API · Docker · SSE streaming |
-| **Reliability** | 2,408 tests across 3 platforms, CI/CD with ruff + mypy |
+| **Reliability** | 2,269 tests across 3 platforms, CI/CD with ruff + mypy |
 | **No vendor lock-in** | Zero dependencies. No cloud APIs, no API keys, no rate limits |
 | **Language coverage** | 25 language packs + universal processor for any language |
 | **Self-hosted** | Docker image, pip install, on-premise deployment |
@@ -1848,7 +1856,13 @@ Try the [Live Demo](https://texthumanize.link/). For local use, the REST API + S
 
 ---
 
-## 🆕 What's New in v0.32.0
+## 🆕 What's New in v0.33.0
+
+### Media watermark forensics — images, audio & video (0.33.0)
+- **New `texthumanize.media_watermark` engine** — `detect_media_watermarks()` and `clean_media_watermarks()` audit and strip AI-watermark/provenance signals in **images, audio and video**, pure-Python + numpy (Pillow optional), fully offline.
+- **Detects** C2PA / CAI manifests, XMP (`digitalSourceType`, `trainedAlgorithmicMedia`), EXIF `Software`/`Make`, embedded generation parameters (Stable Diffusion, ComfyUI…), and generator signatures (Midjourney, DALL·E, Firefly, Leonardo, NovelAI, Suno, Sora…), plus image LSB-steganography and audio out-of-band/ultrasonic anomalies.
+- **Removes** provenance/metadata from PNG/JPEG/WebP/WAV (re-serialised); for MP4/MKV it returns a safe `ffmpeg -map_metadata -1` recipe.
+- **Honest by design** — it covers inspectable signals and **cannot** detect or remove robust in-content neural watermarks such as Google SynthID. CLI: `texthumanize media file.png --clean -o clean.png`.
 
 ### Whitespace fidelity, contract clarity, drift guards (0.32.0)
 - **Faithful spacing in selective modes** — `minimal=True` / `only_flagged=True` no longer drop the space after a sentence-ending period (0.31.1), and `humanize_sentences()` now preserves the original newlines and paragraph breaks instead of collapsing every gap to a single space.
@@ -1915,7 +1929,9 @@ Try the [Live Demo](https://texthumanize.link/). For local use, the REST API + S
 - **Final sanitization** in `run()` method catches post-loop residual artifacts
 
 ### Stats
-- **2,257 tests** · **130 modules** · **240,000+ lines** · **25 languages** · **38-stage pipeline**
+- **2,269
+0
+41 tests** · **131 modules** · **240,000+ lines** · **25 languages** · **38-stage pipeline**
 
 ---
 
