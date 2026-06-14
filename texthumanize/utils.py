@@ -17,6 +17,11 @@ PROFILE_ALIASES: dict[str, str] = {
     "support_reply": "email",
     "legal": "formal",
     "social_post": "social",
+    "prosa": "prose",
+    "literatur": "prose",
+    "literature": "prose",
+    "fiction": "prose",
+    "literary": "prose",
 }
 
 @dataclass
@@ -64,7 +69,7 @@ class HumanizeOptions:
             self.intensity = 100
         _VALID_PROFILES = (
             "chat", "web", "seo", "docs", "formal",
-            "academic", "marketing", "social", "email",
+            "academic", "marketing", "social", "email", "prose",
         )
         self.profile = PROFILE_ALIASES.get(self.profile, self.profile)
         if self.profile not in _VALID_PROFILES:
@@ -223,6 +228,15 @@ PROFILES = {
         "repetition_intensity": 0.4,
         "liveliness_intensity": 0.0,
         "target_sentence_len": (15, 30),
+    },
+    "prose": {
+        "description": "Literarische Prosa, erzählender Stil",
+        "typography": {"dash": "—", "quotes": "„“", "ellipsis": "…"},
+        "decancel_intensity": 0.45,
+        "structure_intensity": 0.55,
+        "repetition_intensity": 0.35,
+        "liveliness_intensity": 0.15,
+        "target_sentence_len": (12, 28),
     },
     "academic": {
         "description": "Академический / научный стиль",

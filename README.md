@@ -108,7 +108,7 @@ TextHumanize is a **pure-algorithmic text processing engine** that transforms AI
 |:-:|:----------|:--------|
 | 🚀 | **Blazing fast** | 300–500 ms for a paragraph; full article in 1–2 seconds |
 | 🔒 | **100% private** | All processing is local — your text never leaves your machine |
-| 🎯 | **Precise control** | Intensity 0–100, 9 profiles, 9 idiolect presets, keyword preservation, max change ratio |
+| 🎯 | **Precise control** | Intensity 0–100, 10 profiles, 9 idiolect presets, keyword preservation, max change ratio |
 | 🌍 | **25 languages** | Deep support for EN/RU/UK/DE; dictionaries for 25 languages; statistical processor for any other |
 | 📦 | **Zero dependencies** | Pure Python stdlib — no pip packages, no model downloads, starts in <100 ms |
 | 🔁 | **Reproducible** | Seed-based PRNG — same input + same seed = identical output |
@@ -735,7 +735,7 @@ python scripts/update_marker_packs.py --apply-reviewed marker_pack_review.md
 |:----------|:-----|:--------|:------------|
 | `text` | `str` | — | Input text (max 1 MB) |
 | `lang` | `str` | — | Language code: `en`, `ru`, `uk`, `de`, etc. |
-| `profile` | `str` | `"web"` | Processing profile: `chat`, `web`, `seo`, `docs`, `formal`, `academic`, `marketing`, `social`, `email`, plus intent aliases `seo_article`, `landing_page`, `product_description`, `support_reply`, `legal`, `social_post` |
+| `profile` | `str` | `"web"` | Processing profile: `chat`, `web`, `seo`, `docs`, `formal`, `prose`, `academic`, `marketing`, `social`, `email`, plus intent aliases `seo_article`, `landing_page`, `product_description`, `support_reply`, `legal`, `social_post`, `prosa`, `literatur`, `literature`, `fiction`, `literary` |
 | `intensity` | `int` | `50` | Aggressiveness 0–100 |
 | `seed` | `int` | `None` | PRNG seed for reproducibility |
 | `preserve` | `dict` | `{}` | Protect code, URLs, email, dates, prices, ids, quotes, named entities, brand terms |

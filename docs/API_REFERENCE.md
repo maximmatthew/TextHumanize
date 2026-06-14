@@ -51,7 +51,7 @@ from texthumanize import humanize
 result = humanize(
     text="Your text here",
     lang="auto",             # auto, en, ru, uk, de, fr, es, it, pl, pt
-    profile="web",           # chat, web, seo, docs, formal, academic, marketing, social, email
+    profile="web",           # chat, web, seo, docs, formal, prose, academic, marketing, social, email
     intensity=60,            # 0-100
     preserve={
         "code_blocks": True,
@@ -618,6 +618,7 @@ liveliness → universal → naturalization → stylistic_alignment → validati
 | `seo` | Careful (40) | 12–25 words | None | SEO content |
 | `docs` | Low (50) | 12–28 words | None | Technical documentation |
 | `formal` | Minimal (30) | 15–30 words | None | Academic, legal |
+| `prose` | Gentle (45) | 12–28 words | Low | Literary prose, narrative writing |
 | `academic` | Minimal (25) | 15–30 words | None | Research papers |
 | `marketing` | Med-High (70) | 8–20 words | Medium | Sales, promo copy |
 | `social` | High (85) | 6–15 words | High | Social media posts |

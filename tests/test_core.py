@@ -93,7 +93,7 @@ class TestHumanize:
     def test_profiles(self):
         """Все профили работают без ошибок."""
         text = "Данный текст является примером обработки текста."
-        for profile in ("chat", "web", "seo", "docs", "formal"):
+        for profile in ("chat", "web", "seo", "docs", "formal", "prose"):
             result = humanize(text, lang="ru", profile=profile, seed=42)
             assert isinstance(result, HumanizeResult), f"Ошибка в профиле {profile}"
 

@@ -275,6 +275,8 @@ class TestMinimalAndIntentProfiles:
             ("support_reply", "email"),
             ("legal", "formal"),
             ("social_post", "social"),
+            ("prosa", "prose"),
+            ("literature", "prose"),
         ],
     )
     def test_intent_profile_aliases(self, profile, expected):

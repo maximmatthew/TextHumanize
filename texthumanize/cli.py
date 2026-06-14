@@ -1230,9 +1230,10 @@ Examples:
         default="web",
         choices=[
             "chat", "web", "seo", "docs", "formal",
-            "academic", "marketing", "social", "email",
+            "academic", "marketing", "social", "email", "prose",
             "seo_article", "landing_page", "product_description",
             "support_reply", "legal", "social_post",
+            "prosa", "literatur", "literature", "fiction", "literary",
         ],
         help="Processing profile (default: web)",
     )

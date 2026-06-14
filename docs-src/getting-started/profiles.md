@@ -1,6 +1,6 @@
 # Profiles
 
-TextHumanize includes 9 built-in profiles optimized for different content types.
+TextHumanize includes 10 built-in profiles optimized for different content types.
 
 ## Profile Table
 
@@ -11,6 +11,7 @@ TextHumanize includes 9 built-in profiles optimized for different content types.
 | `seo` | SEO content (keyword-safe) | 12–25 words | None | 40 |
 | `docs` | Technical documentation | 12–28 words | None | 50 |
 | `formal` | Academic, legal | 15–30 words | None | 30 |
+| `prose` | Literary prose, narrative writing | 12–28 words | Low | 45 |
 | `academic` | Research papers | 15–30 words | None | 25 |
 | `marketing` | Sales, promo copy | 8–20 words | Medium | 70 |
 | `social` | Social media posts | 6–15 words | High | 85 |
@@ -33,6 +34,9 @@ result = humanize(text, lang="en", profile="chat", intensity=80)
 
 # Academic paper
 result = humanize(text, lang="en", profile="academic", intensity=25)
+
+# Literary prose / narrative text
+result = humanize(text, lang="de", profile="prose", intensity=45)
 ```
 
 ## Style Presets

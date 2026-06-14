@@ -69,7 +69,7 @@ Try TextHumanize online: **[humanizekit.tester-buyreadysite.website](https://hum
 
 - :material-cog: **[Profiles](getting-started/profiles.md)**
 
-    9 built-in profiles for different content types
+    10 built-in profiles for different content types
 
 - :material-lock-check: **[Private Offline Workflow](getting-started/private-offline-workflow.md)**
 

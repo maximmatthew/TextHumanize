@@ -108,6 +108,9 @@ class TypographyNormalizer:
             text = text.replace('„', '«').replace('"', '»')
             # Простые кавычки заменяем только парами
             text = self._replace_paired_quotes(text, '"', '«', '»')
+        elif target == '„“':
+            text = text.replace('«', '„').replace('»', '“')
+            text = self._replace_paired_quotes(text, '"', '„', '“')
 
         return text
 

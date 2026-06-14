@@ -116,7 +116,7 @@ It normalizes typography, simplifies bureaucratic language, diversifies sentence
 |:----------|:--------|
 | 🚀 **Blazing fast** | ~1,500 chars/sec — process a full article in 1–2 seconds |
 | 🔒 **100% private** | All processing is local. Your text never leaves your machine |
-| 🎯 **Precise control** | Intensity 0–100, 9 profiles, keyword preservation, max change ratio |
+| 🎯 **Precise control** | Intensity 0–100, 10 profiles, keyword preservation, max change ratio |
 | 🌍 **14 languages + universal** | Full dictionaries for 14 languages; statistical processor for any other |
 | 📦 **Zero dependencies** | Pure Python stdlib — no pip packages, no model downloads |
 | 🔁 **Reproducible** | Seed-based PRNG — same input + same seed = identical output |
@@ -393,7 +393,7 @@ print(result.text)
 result = humanize(
     "Furthermore, it is important to note that the implementation facilitates optimization.",
     lang="en",             # auto-detect or specify
-    profile="web",         # chat, web, seo, docs, formal, academic, marketing, social, email
+    profile="web",         # chat, web, seo, docs, formal, prose, academic, marketing, social, email
     intensity=70,          # 0 (mild) to 100 (maximum)
     target_style="student" # preset: student, copywriter, scientist, journalist, blogger
 )
@@ -519,7 +519,7 @@ from texthumanize import humanize
 result = humanize(
     text="Your text here",
     lang="auto",        # auto-detect or specify: en, ru, de, fr, es, etc.
-    profile="web",      # chat, web, seo, docs, formal, academic, marketing, social, email
+    profile="web",      # chat, web, seo, docs, formal, prose, academic, marketing, social, email
     intensity=60,       # 0 (no changes) to 100 (maximum)
     preserve={          # protect specific elements
         "code_blocks": True,
@@ -1048,7 +1048,7 @@ print(f"Overall score: {report.overall_score:.1f}/100")
 
 ## Profiles
 
-Nine built-in profiles control the processing style:
+Ten built-in profiles control the processing style:
 
 | Profile | Use Case | Sentence Length | Colloquialisms | Intensity Default |
 |---------|----------|:---------:|:---------:|:---------:|
@@ -1057,6 +1057,7 @@ Nine built-in profiles control the processing style:
 | `seo` | SEO content | 12-25 words | None | 40 |
 | `docs` | Technical documentation | 12-28 words | None | 50 |
 | `formal` | Academic, legal | 15-30 words | None | 30 |
+| `prose` | Literary prose, narrative writing | 12-28 words | Low | 45 |
 | `academic` | Research papers | 15-30 words | None | 25 |
 | `marketing` | Sales, promo copy | 8-20 words | Medium | 70 |
 | `social` | Social media posts | 6-15 words | High | 85 |
@@ -1266,8 +1267,8 @@ Positional:
 Options:
   -o, --output FILE         Output file (default: stdout)
   -l, --lang LANG           Language: auto, en, ru, uk, de, fr, es, pl, pt, it
-  -p, --profile PROFILE     Profile: chat, web, seo, docs, formal, academic,
-                            marketing, social, email
+  -p, --profile PROFILE     Profile: chat, web, seo, docs, formal, prose,
+                            academic, marketing, social, email
   -i, --intensity N         Processing intensity 0-100 (default: 60)
   --keep WORD [WORD ...]    Keywords to preserve
   --brand TERM [TERM ...]   Brand terms to protect
